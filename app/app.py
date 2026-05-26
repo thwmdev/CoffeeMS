@@ -1,8 +1,6 @@
-from flask import Flask
-
-from routers.menu import menu_bp
-from routers.inventory import inventory_bp
-from routers.recipe import recipe_bp
+from app.routers.menu import menu_bp
+from app.routers.inventory import inventory_bp
+from app.routers.recipe import recipe_bp
 
 app = Flask(__name__)
 
