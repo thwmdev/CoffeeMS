@@ -1,12 +1,30 @@
-import mysql.connector
+from sqlalchemy import create_engine
 
-def get_connection():
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base
 
-    conn = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="root123",
-        database="quanlyquancafe"
-    )
+DATABASE_URL = "mysql+mysqlconnector://Nia:123456@localhost/quanlyquancafe"
 
-    return conn
+engine = create_engine(
+    DATABASE_URL
+)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
+Base = declarative_base()
+
+def get_db():
+
+    db = SessionLocal()
+
+    try:
+
+        yield db
+
+    finally:
+
+        db.close()
