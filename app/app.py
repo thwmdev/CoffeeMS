@@ -1,27 +1,23 @@
-from flask import Flask, request, jsonify
-import mysql.connector
+from fastapi import APIRouter
 
-app = Flask(__name__)
+router = APIRouter()
 
-conn = mysql.connector.connect(
-    host="localhost",
-    user="Nia",
-    password="123456",
-    database="quanlyquancafe"
-)
+menu = []
 
-cursor = conn.cursor(dictionary=True)
+@router.post("/them-mon")
+def them_mon(
+    ten_mon: str,
+    gia: float
+):
 
-@app.route("/mon", methods=["GET"])
-def get_mon():
+    mon = {
+        "ten_mon": ten_mon,
+        "gia": gia
+    }
 
-    sql = "SELECT * FROM MON"
+    menu.append(mon)
 
-    cursor.execute(sql)
-
-    result = cursor.fetchall()
-
-    return jsonify(result)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    return {
+        "message": "Thêm món thành công",
+        "data": mon
+    }

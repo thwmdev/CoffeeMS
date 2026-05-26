@@ -1,17 +1,30 @@
-import mysql.connector
+from sqlalchemy import create_engine
 
-conn = mysql.connector.connect(
-    host="localhost",
-    user="Nia",
-    password="123456",
-    database="quanlyquancafe"
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base
+
+DATABASE_URL = "mysql+mysqlconnector://Nia:123456@localhost/quanlyquancafe"
+
+engine = create_engine(
+    DATABASE_URL
 )
 
-print("Kết nối thành công!")
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
-cursor = conn.cursor()
+Base = declarative_base()
 
-cursor.execute("SELECT * FROM TAIKHOAN")
+def get_db():
 
-for row in cursor.fetchall():
-    print(row)
+    db = SessionLocal()
+
+    try:
+
+        yield db
+
+    finally:
+
+        db.close()
