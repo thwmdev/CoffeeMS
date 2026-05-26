@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from pydantic import Field
 
 class MonCreate(BaseModel):
 
@@ -7,6 +8,4 @@ class MonCreate(BaseModel):
         max_length=100
     )
 
-    gia: float = Field(
-        gt=0
-    )
+    gia: float = Field(gt=0)
