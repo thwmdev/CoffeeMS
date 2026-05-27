@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quản Lý Công Thức</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/recipe.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet"></head>
+
+<body>
+
+<div class="wrapper">
+
+<div class="sidebar">
+        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
+        <ul>
+            <li onclick="window.location.href='/menu/'" style="cursor: pointer;">Menu</li>
+            
+            <li onclick="window.location.href='/inventory/'" style="cursor: pointer;">Inventory</li>
+            
+            <li class="active" onclick="window.location.href='/recipe/'" style="cursor: pointer;">Recipe</li>
+            
+            <li onclick="window.location.href='/orders/'" style="cursor: pointer;">Orders</li>
+            
+            <li onclick="window.location.href='/reports/'" style="cursor: pointer;">Reports</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+
+        <div class="page-title">
+            <h1>Quản Lý Định Mức Công Thức Món</h1>
+        </div>
+
+        <div class="search-box">
+            <input type="text"
+                id="searchKeyword"
+                class="form-control"
+                placeholder="Tìm theo tên món hoặc nguyên liệu..."
+                onkeyup="searchRecipe()">
+
+            <input type="number"
+                id="searchMaMon"
+                class="form-control"
+                placeholder="Lọc chính xác mã món (ID)..."
+                onkeyup="searchRecipe()">
+        </div>
+
+        <div class="cards">
+            <div class="card-box">
+                <h3>Tổng số dòng công thức</h3>
+                <p id="totalRecipes">0</p>
+            </div>
+        </div>
+
+        <div class="form-box">
+            <h3>Thêm / Sửa công thức thành phần</h3>
+            <div class="form-grid">
+                <input id="MaMon" class="form-control" placeholder="Mã món ăn (ID)" type="number">
+                <input id="MaNL" class="form-control" placeholder="Mã nguyên liệu (ID)" type="number">
+                <input id="SoLuongSuDung" class="form-control" placeholder="Số lượng tiêu hao (Số)" type="number" step="0.001">
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-warning" onclick="addRecipe()">
+                    Thêm công thức
+                </button>
+                <button class="btn btn-dark" onclick="updateRecipe()">
+                    Cập nhật thay đổi
+                </button>
+            </div>
+        </div>
+
+        <div class="form-box">
+            <h3>Kiểm tra khả năng phục vụ (Dựa trên lượng tồn kho)</h3>
+            <div class="form-grid">
+                <input id="CheckMaMon" class="form-control" placeholder="Nhập mã món ăn cần tính toán" type="number">
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-info text-white" onclick="checkAvailability()">
+                    Tính toán số lượng phần khả dụng
+                </button>
+            </div>
+            <div id="availabilityResult" class="mt-3 p-3 bg-light rounded border" style="display: none;"></div>
+        </div>
+
+        <div class="table-box">
+            <table class="table table-hover align-middle">
+<thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Mã Món</th>
+                        <th>Tên Món Ăn/Đồ Uống</th>
+                        <th>Mã NL</th>
+                        <th>Tên Nguyên Liệu</th>
+                        <th>Định Mức Dùng</th>
+                        <th>Đơn Vị Tính</th>
+                        <th>Khả dụng (Theo NL)</th> <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="recipeTable"></tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/recipe.js') }}"></script>
+
+</body>
+
+</html>
