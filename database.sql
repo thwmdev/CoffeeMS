@@ -14,8 +14,8 @@ CREATE TABLE TAIKHOAN (
     MaTK INT AUTO_INCREMENT PRIMARY KEY,
     TenDangNhap VARCHAR(50) NOT NULL UNIQUE,
     MatKhau VARCHAR(255) NOT NULL,
-    VaiTro VARCHAR(20) NOT NULL,
-    TrangThai VARCHAR(20) NOT NULL,
+    VaiTro VARCHAR(20) NOT NULL, -- ADMIN, NHANVIEN, THUNGAN
+    TrangThai VARCHAR(20) NOT NULL, -- HOATDONG, KHOA
     DoiMK BOOLEAN DEFAULT FALSE
 );
 
@@ -43,7 +43,7 @@ CREATE TABLE BAN (
     MaBan INT AUTO_INCREMENT PRIMARY KEY,
     TenBan VARCHAR(50) NOT NULL UNIQUE,
     SoChoNgoi INT NOT NULL,
-    TrangThai VARCHAR(30) NOT NULL,
+    TrangThai VARCHAR(30) NOT NULL, -- TRONG, DANGSUDUNG, DADAT
 
     CHECK (SoChoNgoi > 0)
 );
@@ -65,7 +65,7 @@ CREATE TABLE MON (
     MaMon INT AUTO_INCREMENT PRIMARY KEY,
     TenMon VARCHAR(100) NOT NULL,
     GiaBan DECIMAL(10,2) NOT NULL,
-    TrangThai VARCHAR(30) NOT NULL,
+    TrangThai VARCHAR(30) NOT NULL, -- CONBAN, HETBANG
     MoTa VARCHAR(255),
     MaDM INT NOT NULL,
 
@@ -83,10 +83,10 @@ CREATE TABLE MON (
 CREATE TABLE DONHANG (
     MaDon INT AUTO_INCREMENT PRIMARY KEY,
     NgayTao DATETIME NOT NULL,
-    TrangThai VARCHAR(30) NOT NULL,
-    TongTien DECIMAL(10,2) NOT NULL,
-    GiamGia DECIMAL(10,2),
-    ThanhTien DECIMAL(10,2) NOT NULL,
+    TrangThai VARCHAR(30) NOT NULL, -- XACNHAN, DANGPHUCVU, CHOTHANHTOAN, DATHANHTOAN, HUY
+    TongTien DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    GiamGia DECIMAL(10,2) DEFAULT 0.00,
+    ThanhTien DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     MaBan INT NOT NULL,
     MaNV INT NOT NULL,
 
@@ -113,7 +113,7 @@ CREATE TABLE CHITIETDONHANG (
     SoLuong INT NOT NULL,
     DonGia DECIMAL(10,2) NOT NULL,
     GhiChu VARCHAR(255),
-    TrangThaiMon VARCHAR(30) NOT NULL,
+    TrangThaiMon VARCHAR(30) NOT NULL, -- CHOLAM, DANGLAM, DAPHUCVU
 
     CONSTRAINT FK_CTDH_DONHANG
     FOREIGN KEY (MaDon)
@@ -134,10 +134,10 @@ CREATE TABLE CHITIETDONHANG (
 CREATE TABLE KHUYENMAI (
     MaKM INT AUTO_INCREMENT PRIMARY KEY,
     MaCode VARCHAR(50) NOT NULL UNIQUE,
-    LoaiKM VARCHAR(20) NOT NULL,
+    LoaiKM VARCHAR(20) NOT NULL, -- PHANTRAM, TIENMAT
     GiaTri DECIMAL(10,2) NOT NULL,
     NgayHetHan DATETIME,
-    TrangThai VARCHAR(20) NOT NULL,
+    TrangThai VARCHAR(20) NOT NULL, -- HOATDONG, HETHAN
 
     CHECK (GiaTri >= 0)
 );
@@ -150,10 +150,10 @@ CREATE TABLE THANHTOAN (
     MaTT INT AUTO_INCREMENT PRIMARY KEY,
     MaDon INT NOT NULL UNIQUE,
     MaKM INT,
-    PhuongThuc VARCHAR(30) NOT NULL,
-    SoTienVao DECIMAL(10,2),
-    TienThoi DECIMAL(10,2),
-    VAT DECIMAL(10,2),
+    PhuongThuc VARCHAR(30) NOT NULL, -- TIENMAT, CHUYENKHOAN, THE
+    SoTienVao DECIMAL(10,2) DEFAULT 0.00,
+    TienThoi DECIMAL(10,2) DEFAULT 0.00,
+    VAT DECIMAL(10,2) DEFAULT 0.00,
     NgayThanhToan DATETIME NOT NULL,
 
     CONSTRAINT FK_THANHTOAN_DONHANG
@@ -175,7 +175,7 @@ CREATE TABLE NGUYENLIEU (
     DonViTinh VARCHAR(20) NOT NULL,
     SoLuongTon DECIMAL(10,2) NOT NULL,
     DinhMucTonKho DECIMAL(10,2) NOT NULL,
-    SoLuongTruTam DECIMAL(10,2) DEFAULT 0,
+    SoLuongTruTam DECIMAL(10,2) DEFAULT 0.00,
 
     CHECK (SoLuongTon >= 0),
     CHECK (DinhMucTonKho >= 0)
@@ -267,78 +267,46 @@ CREATE TABLE DATBAN (
     CHECK (SoNguoi > 0)
 );
 
+
 -- =========================================
--- DU LIEU MAU
+-- DỮ LIỆU MẪU ĐÃ CHUẨN HÓA ĐỒNG BỘ CODE
 -- =========================================
 
 USE quanlyquancafe;
 
--- =========================================
--- TAIKHOAN
--- =========================================
+-- ---- TAIKHOAN ----
+INSERT INTO TAIKHOAN (TenDangNhap, MatKhau, VaiTro, TrangThai, DoiMK) VALUES
+('admin', '123456', 'ADMIN', 'HOATDONG', 0),
+('nhanvien1', '123456', 'NHANVIEN', 'HOATDONG', 0),
+('thungan1', '123456', 'THUNGAN', 'HOATDONG', 0);
 
-INSERT INTO TAIKHOAN
-(TenDangNhap, MatKhau, VaiTro, TrangThai, DoiMK)
-VALUES
-('admin', '123456', 'Admin', 'Hoat dong', 0),
-('nhanvien1', '123456', 'NhanVien', 'Hoat dong', 0),
-('thungan1', '123456', 'ThuNgan', 'Hoat dong', 0);
-
--- =========================================
--- NHANVIEN
--- =========================================
-
-INSERT INTO NHANVIEN
-(HoTen, SDT, Email, MaTK)
-VALUES
+-- ---- NHANVIEN ----
+INSERT INTO NHANVIEN (HoTen, SDT, Email, MaTK) VALUES
 ('Nguyen Van A', '0900000001', 'a@gmail.com', 1),
 ('Tran Thi B', '0900000002', 'b@gmail.com', 2),
 ('Le Van C', '0900000003', 'c@gmail.com', 3);
 
--- =========================================
--- BAN
--- =========================================
+-- ---- BAN ----
+INSERT INTO BAN (TenBan, SoChoNgoi, TrangThai) VALUES
+('Ban 1', 4, 'TRONG'),
+('Ban 2', 4, 'DANGSUDUNG'),
+('Ban 3', 6, 'DADAT'),
+('Ban 4', 2, 'TRONG');
 
-INSERT INTO BAN
-(TenBan, SoChoNgoi, TrangThai)
-VALUES
-('Ban 1', 4, 'Trong'),
-('Ban 2', 4, 'Dang su dung'),
-('Ban 3', 6, 'Da dat'),
-('Ban 4', 2, 'Trong');
+-- ---- DANHMUC ----
+INSERT INTO DANHMUC (TenDanhMuc) VALUES
+('Ca phe'), ('Tra sua'), ('Nuoc ep'), ('Banh ngot');
 
--- =========================================
--- DANHMUC
--- =========================================
+-- ---- MON ----
+INSERT INTO MON (TenMon, GiaBan, TrangThai, MoTa, MaDM) VALUES
+('Ca phe sua', 30000, 'CONBAN', 'Ca phe sua da', 1),
+('Bac xiu', 35000, 'CONBAN', 'Bac xiu nong', 1),
+('Tra sua tran chau', 45000, 'CONBAN', 'Tra sua size M', 2),
+('Nuoc cam', 40000, 'CONBAN', 'Cam tuoi', 3),
+('Tiramisu', 50000, 'CONBAN', 'Banh tiramisu', 4);
 
-INSERT INTO DANHMUC
-(TenDanhMuc)
-VALUES
-('Ca phe'),
-('Tra sua'),
-('Nuoc ep'),
-('Banh ngot');
-
--- =========================================
--- MON
--- =========================================
-
-INSERT INTO MON
-(TenMon, GiaBan, TrangThai, MoTa, MaDM)
-VALUES
-('Ca phe sua', 30000, 'Con ban', 'Ca phe sua da', 1),
-('Bac xiu', 35000, 'Con ban', 'Bac xiu nong', 1),
-('Tra sua tran chau', 45000, 'Con ban', 'Tra sua size M', 2),
-('Nuoc cam', 40000, 'Con ban', 'Cam tuoi', 3),
-('Tiramisu', 50000, 'Con ban', 'Banh tiramisu', 4);
-
--- =========================================
--- NGUYENLIEU
--- =========================================
-
-INSERT INTO NGUYENLIEU
-(TenNL, DonViTinh, SoLuongTon, DinhMucTonKho, SoLuongTruTam)
-VALUES
+-- ---- NGUYENLIEU ----
+INSERT INTO NGUYENLIEU (TenNL, DonViTinh, SoLuongTon, DinhMucTonKho, SoLuongTruTam) VALUES
 ('Ca phe', 'Gram', 5000, 1000, 0),
 ('Sua dac', 'Lon', 50, 10, 0),
 ('Tran chau', 'Gram', 3000, 500, 0),
@@ -346,91 +314,48 @@ VALUES
 ('Cam tuoi', 'Kg', 20, 5, 0),
 ('Duong', 'Kg', 15, 3, 0);
 
--- =========================================
--- CONGTHUC
--- =========================================
-
-INSERT INTO CONGTHUC
-(MaMon, MaNL, SoLuongSuDung)
-VALUES
-(1, 1, 20),
-(1, 2, 1),
-(2, 1, 15),
-(2, 2, 2),
-(3, 3, 50),
-(3, 4, 10),
+-- ---- CONGTHUC ----
+INSERT INTO CONGTHUC (MaMon, MaNL, SoLuongSuDung) VALUES
+(1, 1, 20), (1, 2, 1),
+(2, 1, 15), (2, 2, 2),
+(3, 3, 50), (3, 4, 10),
 (4, 5, 2);
 
--- =========================================
--- DONHANG
--- =========================================
+-- ---- KHUYENMAI ----
+INSERT INTO KHUYENMAI (MaCode, LoaiKM, GiaTri, NgayHetHan, TrangThai) VALUES
+('GIAM10', 'PHANTRAM', 10, '2026-12-31', 'HOATDONG'),
+('GIAM50K', 'TIENMAT', 50000, '2026-12-31', 'HOATDONG');
 
-INSERT INTO DONHANG
-(NgayTao, TrangThai, TongTien, GiamGia, ThanhTien, MaBan, MaNV)
-VALUES
-(NOW(), 'Da thanh toan', 75000, 5000, 70000, 1, 2),
-(NOW(), 'Dang phuc vu', 90000, 0, 90000, 2, 2),
-(NOW(), 'Cho thanh toan', 50000, 0, 50000, 3, 3);
+-- ---- DONHANG ----
+INSERT INTO DONHANG (NgayTao, TrangThai, TongTien, GiamGia, ThanhTien, MaBan, MaNV) VALUES
+(NOW(), 'DATHANHTOAN', 75000, 5000, 70000, 1, 2),
+(NOW(), 'DANGPHUCVU', 90000, 0, 90000, 2, 2),
+(NOW(), 'CHOTHANHTOAN', 50000, 0, 50000, 3, 3);
 
--- =========================================
--- CHITIETDONHANG
--- =========================================
+-- ---- CHITIETDONHANG ----
+INSERT INTO CHITIETDONHANG (MaDon, MaMon, SoLuong, DonGia, GhiChu, TrangThaiMon) VALUES
+(1, 1, 1, 30000, 'It da', 'DAPHUCVU'),
+(1, 5, 1, 50000, NULL, 'DAPHUCVU'),
+(2, 3, 2, 45000, 'Them tran chau', 'DANGLAM'),
+(3, 5, 1, 50000, NULL, 'CHOLAM');
 
-INSERT INTO CHITIETDONHANG
-(MaDon, MaMon, SoLuong, DonGia, GhiChu, TrangThaiMon)
-VALUES
-(1, 1, 1, 30000, 'It da', 'Da phuc vu'),
-(1, 5, 1, 50000, NULL, 'Da phuc vu'),
-(2, 3, 2, 45000, 'Them tran chau', 'Dang lam'),
-(3, 5, 1, 50000, NULL, 'Cho lam');
+-- ---- THANHTOAN ----
+INSERT INTO THANHTOAN (MaDon, MaKM, PhuongThuc, SoTienVao, TienThoi, VAT, NgayThanhToan) VALUES
+(1, 1, 'TIENMAT', 100000, 30000, 7000, NOW());
 
--- =========================================
--- KHUYENMAI
--- =========================================
+-- ---- LICHSUDONHANG ----
+INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian) VALUES
+(1, 2, 'TAODON', 'Tao don hang moi', NOW()),
+(1, 2, 'THANHTOAN', 'Thanh toan tien mat', NOW()),
+(2, 2, 'CAPNHAT', 'Them mon vao don', NOW());
 
-INSERT INTO KHUYENMAI
-(MaCode, LoaiKM, GiaTri, NgayHetHan, TrangThai)
-VALUES
-('GIAM10', 'Phan tram', 10, '2026-12-31', 'Hoat dong'),
-('GIAM50K', 'Tien mat', 50000, '2026-12-31', 'Hoat dong');
-
--- =========================================
--- THANHTOAN
--- =========================================
-
-INSERT INTO THANHTOAN
-(MaDon, MaKM, PhuongThuc, SoTienVao, TienThoi, VAT, NgayThanhToan)
-VALUES
-(1, 1, 'Tien mat', 100000, 30000, 7000, NOW());
-
--- =========================================
--- LICHSUDONHANG
--- =========================================
-
-INSERT INTO LICHSUDONHANG
-(MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
-VALUES
-(1, 2, 'Tao don', 'Tao don hang moi', NOW()),
-(1, 2, 'Thanh toan', 'Thanh toan tien mat', NOW()),
-(2, 2, 'Cap nhat', 'Them mon vao don', NOW());
-
--- =========================================
--- PHIEUNHAP
--- =========================================
-
-INSERT INTO PHIEUNHAP
-(MaNL, MaNV, SoLuong, GiaNhap, NgayNhap)
-VALUES
+-- ---- PHIEUNHAP ----
+INSERT INTO PHIEUNHAP (MaNL, MaNV, SoLuong, GiaNhap, NgayNhap) VALUES
 (1, 1, 2000, 150000, NOW()),
 (2, 1, 20, 300000, NOW()),
 (5, 1, 10, 250000, NOW());
 
--- =========================================
--- DATBAN
--- =========================================
-
-INSERT INTO DATBAN
-(MaBan, TenKhach, SDT, GioDen, SoNguoi)
-VALUES
+-- ---- DATBAN ----
+INSERT INTO DATBAN (MaBan, TenKhach, SDT, GioDen, SoNguoi) VALUES
 (3, 'Pham Van D', '0911111111', '2026-05-30 18:00:00', 4),
 (4, 'Hoang Thi E', '0922222222', '2026-05-30 19:30:00', 2);
