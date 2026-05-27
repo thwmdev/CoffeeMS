@@ -1,21 +1,13 @@
 from flask import Blueprint, jsonify, request, render_template
-from database import get_connection
+from database.db import get_connection 
 
-# 👉 thêm url_prefix để tách rõ API và trang web
+
 menu_bp = Blueprint("menu", __name__, url_prefix="/menu")
 
-
-# =========================
-# TRANG GIAO DIỆN (HTML)
-# =========================
 @menu_bp.route("/", methods=["GET"])
 def home():
     return render_template("menu.html")
 
-
-# =========================
-# LẤY DANH SÁCH MENU (API)
-# =========================
 @menu_bp.route("/api", methods=["GET"])
 def get_menu():
 
@@ -43,10 +35,6 @@ def get_menu():
 
     return jsonify(result)
 
-
-# =========================
-# LẤY 1 MÓN
-# =========================
 @menu_bp.route("/<int:id>", methods=["GET"])
 def get_menu_by_id(id):
 
@@ -63,10 +51,6 @@ def get_menu_by_id(id):
 
     return jsonify(result)
 
-
-# =========================
-# THÊM MÓN
-# =========================
 @menu_bp.route("/", methods=["POST"])
 def add_menu():
 
@@ -96,10 +80,6 @@ def add_menu():
 
     return jsonify({"message": "Thêm món thành công"})
 
-
-# =========================
-# UPDATE MÓN
-# =========================
 @menu_bp.route("/<int:id>", methods=["PUT"])
 def update_menu(id):
 
@@ -131,10 +111,6 @@ def update_menu(id):
 
     return jsonify({"message": "Cập nhật thành công"})
 
-
-# =========================
-# XÓA MÓN
-# =========================
 @menu_bp.route("/<int:id>", methods=["DELETE"])
 def delete_menu(id):
 

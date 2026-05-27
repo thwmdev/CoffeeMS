@@ -3,13 +3,9 @@ import sys
 sys.path.append(r"C:\Users\MY PC\Desktop\CofeeMs\app")
 
 from flask import Blueprint, jsonify, request
-from database import get_connection
+from database.db import get_connection
 
 recipe_bp = Blueprint("recipe", __name__)
-
-# ======================================
-# GET RECIPE BY MENU ID
-# ======================================
 
 @recipe_bp.route("/recipes/<int:ma_mon>", methods=["GET"])
 def get_recipe(ma_mon):
@@ -41,10 +37,6 @@ def get_recipe(ma_mon):
     conn.close()
 
     return jsonify(result)
-
-# ======================================
-# ADD RECIPE
-# ======================================
 
 @recipe_bp.route("/recipes", methods=["POST"])
 def add_recipe():
@@ -88,10 +80,6 @@ def add_recipe():
         "message": "Them cong thuc thanh cong"
     })
 
-# ======================================
-# UPDATE RECIPE
-# ======================================
-
 @recipe_bp.route("/recipes/<int:ma_ct>", methods=["PUT"])
 def update_recipe(ma_ct):
 
@@ -126,10 +114,6 @@ def update_recipe(ma_ct):
         "message": "Cap nhat cong thuc thanh cong"
     })
 
-# ======================================
-# DELETE RECIPE
-# ======================================
-
 @recipe_bp.route("/recipes/<int:ma_ct>", methods=["DELETE"])
 def delete_recipe(ma_ct):
 
@@ -152,10 +136,6 @@ def delete_recipe(ma_ct):
     return jsonify({
         "message": "Xoa cong thuc thanh cong"
     })
-
-# ======================================
-# CALCULATE MENU AVAILABILITY
-# ======================================
 
 @recipe_bp.route("/menu/<int:ma_mon>/availability", methods=["GET"])
 def calculate_availability(ma_mon):

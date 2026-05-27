@@ -1,48 +1,43 @@
+from flask import Blueprint, request, jsonify
 import bcrypt
-import mysql.connector
+from database.db import get_connection
 
-conn = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root123",
-    database="quanlyquancafe"
-)
+auth_bp = Blueprint("auth", __name__)
 
-print("Connected successfully!")
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.json
 
-cursor = conn.cursor()
+    username = data.get("username")
+    password = data.get("password")
 
-username = input("Tên đăng nhập: ")
-password = input("Mật khẩu: ")
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
-sql = """
-SELECT * FROM TAIKHOAN
-WHERE TenDangNhap = %s
-"""
+    cursor.execute(
+        "SELECT * FROM TAIKHOAN WHERE TenDangNhap=%s",
+        (username,)
+    )
 
-cursor.execute(sql, (username,))
+    user = cursor.fetchone()
 
-result = cursor.fetchone()
+    cursor.close()
+    conn.close()
 
-if result:
-    hashed_password = result[2]
+    # ❌ phải check user trước
+    if not user:
+        return jsonify({"message": "Sai tài khoản"}), 401
 
-    if bcrypt.checkpw(
-        password.encode(),
-        hashed_password.encode()
-    ):
+    try:
+        if not bcrypt.checkpw(
+            password.encode(),
+            user["MatKhau"].encode()
+        ):
+            return jsonify({"message": "Sai mật khẩu"}), 401
+    except Exception as e:
+        return jsonify({"message": "Password error", "error": str(e)}), 500
 
-        print("Đăng nhập thành công")
-        print("Vai trò:", result[3])
-
-        if result[3] == "ADMIN":
-            print("Toàn quyền hệ thống")
-
-        elif result[3] == "NHANVIEN":
-            print("Chỉ được gọi món")
-
-    else:
-        print("Sai mật khẩu")
-
-else:
-    print("Không tồn tại tài khoản")
+    return jsonify({
+        "token": "demo-token",
+        "role": user["VaiTro"]
+    })

@@ -1,58 +1,46 @@
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
+from flask import Blueprint, request, jsonify
+import bcrypt
+import jwt
+import datetime
+from database.db import get_connection
 
-from sqlalchemy.orm import Session
+auth_bp = Blueprint("auth", __name__)
 
-from app.database import get_db
+SECRET_KEY = "secret-key-demo"
 
-from app.models.accounts import TaiKhoan
+@auth_bp.route("/login", methods=["POST"])
+def login():
+    data = request.json
 
-from app.schemas.auth import LoginRequest
+    username = data["username"]
+    password = data["password"]
 
-from app.security.hash import verify_password
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
-from app.security.jwt_handler import create_access_token
+    cursor.execute(
+        "SELECT * FROM TAIKHOAN WHERE TenDangNhap=%s",
+        (username,)
+    )
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["Authentication"]
-)
+    user = cursor.fetchone()
 
-@router.post("/login")
-def login(
-    request: LoginRequest,
-    db: Session = Depends(get_db)
-):
-
-    user = db.query(TaiKhoan).filter(
-        TaiKhoan.TenDangNhap == request.username
-    ).first()
+    cursor.close()
+    conn.close()
 
     if not user:
+        return jsonify({"message": "Sai tài khoản"}), 400
 
-        raise HTTPException(
-            status_code=401,
-            detail="Sai tài khoản"
-        )
+    if not bcrypt.checkpw(password.encode(), user["MatKhau"].encode()):
+        return jsonify({"message": "Sai mật khẩu"}), 400
 
-    if not verify_password(
-        request.password,
-        user.MatKhau
-    ):
+    token = jwt.encode({
+        "MaTK": user["MaTK"],
+        "role": user["VaiTro"],
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+    }, SECRET_KEY, algorithm="HS256")
 
-        raise HTTPException(
-            status_code=401,
-            detail="Sai mật khẩu"
-        )
-
-    token = create_access_token({
-        "sub": user.TenDangNhap,
-        "role": user.VaiTro
+    return jsonify({
+        "token": token,
+        "role": user["VaiTro"]
     })
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "role": user.VaiTro
-    }

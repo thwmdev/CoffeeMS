@@ -3,7 +3,7 @@ import sys
 sys.path.append(r"C:\Users\MY PC\Desktop\CofeeMs\app")
 
 from flask import Blueprint, jsonify, request
-from database import get_connection
+from database.db import get_connection
 
 inventory_bp = Blueprint("inventory", __name__)
 
@@ -28,10 +28,6 @@ def get_ingredients():
 
     return jsonify(result)
 
-# ======================================
-# GET INGREDIENT BY ID
-# ======================================
-
 @inventory_bp.route("/inventory/<int:id>", methods=["GET"])
 def get_ingredient_by_id(id):
 
@@ -53,10 +49,6 @@ def get_ingredient_by_id(id):
     conn.close()
 
     return jsonify(result)
-
-# ======================================
-# ADD INGREDIENT
-# ======================================
 
 @inventory_bp.route("/inventory", methods=["POST"])
 def add_ingredient():
@@ -98,10 +90,6 @@ def add_ingredient():
         "message": "Them nguyen lieu thanh cong"
     })
 
-# ======================================
-# UPDATE INGREDIENT
-# ======================================
-
 @inventory_bp.route("/inventory/<int:id>", methods=["PUT"])
 def update_ingredient(id):
 
@@ -142,10 +130,6 @@ def update_ingredient(id):
         "message": "Cap nhat nguyen lieu thanh cong"
     })
 
-# ======================================
-# DELETE INGREDIENT
-# ======================================
-
 @inventory_bp.route("/inventory/<int:id>", methods=["DELETE"])
 def delete_ingredient(id):
 
@@ -168,10 +152,6 @@ def delete_ingredient(id):
     return jsonify({
         "message": "Xoa nguyen lieu thanh cong"
     })
-
-# ======================================
-# IMPORT INVENTORY
-# ======================================
 
 @inventory_bp.route("/inventory/<int:id>/import", methods=["PATCH"])
 def import_inventory(id):

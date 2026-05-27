@@ -1,21 +1,35 @@
-from fastapi import HTTPException, Depends
+from functools import wraps
+from flask import request, jsonify
+import jwt
 
-def role_required(role: str):
+SECRET_KEY = "secret-key-demo"
 
-    def checker():
 
-        # demo giả lập user
-        current_user = {
-            "username": "admin",
-            "role": "admin"
-        }
+def decode_token(token):
+    return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
-        if current_user["role"] != role:
-            raise HTTPException(
-                status_code=403,
-                detail="Không đủ quyền"
-            )
 
-        return current_user
+def role_required(*allowed_roles):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
 
-    return checker
+            auth_header = request.headers.get("Authorization")
+
+            if not auth_header:
+                return jsonify({"message": "UNAUTHORIZED"}), 401
+
+            try:
+                token = auth_header.split(" ")[1]
+                payload = decode_token(token)
+                user_role = payload.get("role")
+            except:
+                return jsonify({"message": "INVALID TOKEN"}), 401
+
+            if user_role not in allowed_roles:
+                return jsonify({"message": "KHONG CO QUYEN"}), 403
+
+            return func(*args, **kwargs)
+
+        return wrapper
+    return decorator

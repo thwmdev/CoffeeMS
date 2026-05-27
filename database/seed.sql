@@ -157,21 +157,18 @@ INSERT INTO TAIKHOAN
 (TenDangNhap, MatKhau, VaiTro, TrangThai)
 VALUES
 (
-    'admin',
-    '$2b$12$abcdefghijklmnopqrstuv',
+    'QL',
+    '123456',
     'ADMIN',
     'HOATDONG'
 ),
 (
-    'nhanvien1',
-    '$2b$12$abcdefghijklmnopqrstuv',
+    'NV1',
+    '123456',
     'NHANVIEN',
     'HOATDONG'
 );
 
--- =========================================
--- INSERT NHANVIEN
--- =========================================
 
 INSERT INTO NHANVIEN
 (HoTen, SDT, Email, MaTK)

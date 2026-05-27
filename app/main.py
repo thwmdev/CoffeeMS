@@ -1,20 +1,16 @@
-from fastapi import FastAPI
+from flask import Flask
+from flask_cors import CORS
 
-from app.database import engine, Base
+from app.routers.auth import auth_bp
 
-from app.routers import auth
-from app.routers import food
+app = Flask(__name__)
+CORS(app)
 
-app = FastAPI()
+app.config["SECRET_KEY"] = "secret-key-demo"
 
-Base.metadata.create_all(bind=engine)
+# register blueprint
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
-app.include_router(auth.router)
-app.include_router(food.router)
 
-@app.get("/")
-def root():
-
-    return {
-        "message": "CoffeeMS API"
-    }
+if __name__ == "__main__":
+    app.run(debug=True)

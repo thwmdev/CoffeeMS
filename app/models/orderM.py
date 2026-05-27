@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from app.database import Base
-from fastapi import APIRouter
+
 class Mon(Base):
 
     __tablename__ = "MON"
