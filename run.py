@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from app.routers.menu import menu_bp
+from app.routers.inventory import inventory_bp
 
 app = Flask(
     __name__,
@@ -12,6 +13,7 @@ app = Flask(
 CORS(app)
 
 app.register_blueprint(menu_bp)
+app.register_blueprint(inventory_bp)
 
 if __name__ == "__main__":
     app.run(debug=True)
