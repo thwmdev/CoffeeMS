@@ -39,7 +39,7 @@ def get_menu():
     FROM MON
     JOIN DANHMUC
         ON MON.MaDM = DANHMUC.MaDM
-    ORDER BY MON.MaMon DESC
+    ORDER BY MON.MaMon ASC
     """
 
     cursor.execute(sql)
