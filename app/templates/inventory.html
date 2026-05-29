@@ -115,27 +115,94 @@
 
 
         <!-- IMPORT -->
-        <div class="form-box">
+<!-- NHẬP HÀNG -->
+<div class="form-box">
 
-            <h3>Nhập kho</h3>
+    <h3>Nhập hàng</h3>
 
-            <div class="form-grid">
+    <div class="form-grid">
 
-                <input id="ImportId" class="form-control" placeholder="Mã nguyên liệu" type="number">
+        <input id="ImportId"
+            class="form-control"
+            placeholder="Mã nguyên liệu"
+            type="number"
+            onchange="loadIngredientStock()">
 
-                <input id="SoLuongNhap" class="form-control" placeholder="Số lượng nhập" type="number">
+        <input id="CurrentStock"
+            class="form-control"
+            placeholder="Tồn kho hiện tại"
+            readonly>
 
-            </div>
+        <input id="SoLuongNhap"
+            class="form-control"
+            placeholder="Số lượng nhập"
+            type="number">
 
-            <div class="action-buttons">
+        <input id="GiaNhap"
+            class="form-control"
+            placeholder="Giá nhập"
+            type="number">
 
-                <button class="btn btn-success" onclick="importInventory()">
-                    Nhập kho
-                </button>
+        <input id="NhaCungCap"
+            class="form-control"
+            placeholder="Nhà cung cấp">
 
-            </div>
+        <input id="NgayNhap"
+            class="form-control"
+            type="datetime-local">
 
-        </div>
+    </div>
+
+    <textarea id="GhiChuNhap"
+        class="form-control mt-3"
+        placeholder="Ghi chú"></textarea>
+
+    <div class="action-buttons">
+
+        <button class="btn btn-success"
+            onclick="importInventory()">
+            Lưu phiếu nhập
+        </button>
+
+    </div>
+
+</div>
+
+<!-- KIỂM KHO -->
+<div class="form-box">
+
+    <h3>Kiểm kho</h3>
+
+    <div class="form-grid">
+
+        <input id="CheckMaNL"
+            class="form-control"
+            placeholder="Mã nguyên liệu"
+            type="number"
+            onchange="loadCheckInventory()">
+
+        <input id="HeThongTon"
+            class="form-control"
+            placeholder="Tồn hệ thống"
+            readonly>
+
+        <input id="SoLuongThucTe"
+            class="form-control"
+            placeholder="Số lượng thực tế"
+            type="number">
+
+    </div>
+
+    <div class="action-buttons">
+
+        <button class="btn btn-primary"
+            onclick="kiemKho()">
+            Xác nhận kiểm kho
+        </button>
+
+    </div>
+
+</div>
 
 
         <!-- TABLE -->

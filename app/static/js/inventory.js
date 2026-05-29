@@ -369,3 +369,131 @@ function editIngredient(id) {
             document.getElementById("ImportId").value = id; 
         });
 }
+
+function loadIngredientStock() {
+
+    const id = document.getElementById("ImportId").value;
+
+    if (!id) return;
+
+    fetch("/inventory/" + id)
+        .then(r => r.json())
+        .then(data => {
+
+            document.getElementById("CurrentStock").value =
+                data.SoLuongTon;
+        });
+}
+
+function importInventory() {
+
+    const maNL = document.getElementById("ImportId").value;
+    const soLuong = Number(document.getElementById("SoLuongNhap").value);
+    const giaNhap = Number(document.getElementById("GiaNhap").value);
+
+    const nhaCungCap =
+        document.getElementById("NhaCungCap").value;
+
+    const ngayNhap =
+        document.getElementById("NgayNhap").value;
+
+    const ghiChu =
+        document.getElementById("GhiChuNhap").value;
+
+    if (!maNL) {
+        alert("Chưa chọn nguyên liệu");
+        return;
+    }
+
+    if (soLuong <= 0) {
+        alert("Số lượng nhập phải lớn hơn 0");
+        return;
+    }
+
+    if (giaNhap <= 0) {
+        alert("Giá nhập phải lớn hơn 0");
+        return;
+    }
+
+    fetch("/inventory/import/" + maNL, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+            SoLuong: soLuong,
+            GiaNhap: giaNhap,
+            NhaCungCap: nhaCungCap,
+            NgayNhap: ngayNhap,
+            GhiChu: ghiChu
+        })
+    })
+    .then(r => r.json().then(data => ({
+        ok: r.ok,
+        data
+    })))
+    .then(res => {
+
+        if (!res.ok)
+            throw new Error(res.data.message);
+
+        alert(res.data.message);
+
+        loadInventory();
+    })
+    .catch(err => alert(err.message));
+}
+
+function loadCheckInventory() {
+
+    const id =
+        document.getElementById("CheckMaNL").value;
+
+    fetch("/inventory/" + id)
+        .then(r => r.json())
+        .then(data => {
+
+            document.getElementById("HeThongTon").value =
+                data.SoLuongTon;
+        });
+}
+
+function kiemKho() {
+
+    const maNL =
+        document.getElementById("CheckMaNL").value;
+
+    const soLuongThucTe =
+        Number(document.getElementById("SoLuongThucTe").value);
+
+    fetch("/inventory/check/" + maNL, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            SoLuongThucTe: soLuongThucTe
+        })
+    })
+    .then(r => r.json().then(data => ({
+        ok: r.ok,
+        data
+    })))
+    .then(res => {
+
+        if (!res.ok)
+            throw new Error(res.data.message);
+
+        alert(res.data.message);
+
+        loadInventory();
+    })
+    .catch(err => alert(err.message));
+}
