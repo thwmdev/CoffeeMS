@@ -6,7 +6,11 @@ recipe_bp = Blueprint(
     __name__,
     url_prefix="/recipe"
 )
-@recipe_bp.route("/")
+
+# =========================
+# GIAO DIỆN
+# =========================
+@recipe_bp.route("/", methods=["GET"])
 def home():
 
     role = request.cookies.get("role")
@@ -15,19 +19,20 @@ def home():
         return "Không có quyền", 403
 
     return render_template("recipe.html")
-# =========================
-# LẤY TOÀN BỘ CÔNG THỨC
-# =========================
-# =========================
-# LẤY TOÀN BỘ CÔNG THỨC
-# =========================
-@recipe_bp.route("/recipe", methods=["GET"])
-def get_all_recipes():
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
 
-        # Đã thêm NGUYENLIEU.SoLuongTon vào SELECT
+
+# =========================
+# LẤY TOÀN BỘ CÔNG THỨC
+# URL: /recipe/recipes
+# =========================
+@recipe_bp.route("/recipes", methods=["GET"])
+def get_all_recipes():
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
         sql = """
         SELECT
             MON.MaMon,
@@ -44,26 +49,34 @@ def get_all_recipes():
             ON CONGTHUC.MaNL = NGUYENLIEU.MaNL
         ORDER BY MON.MaMon
         """
+
         cursor.execute(sql)
-        result = cursor.fetchall()
-        
-        return jsonify(result)
+
+        return jsonify(cursor.fetchall())
+
     except Exception as e:
-        print(f"LỖI TẢI CÔNG THỨC: {str(e)}") 
-        return jsonify({"error": str(e)}), 500
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
     finally:
-        if 'cursor' in locals() and cursor: cursor.close()
-        if 'conn' in locals() and conn: conn.close()
+
+        cursor.close()
+        conn.close()
+
 
 # =========================
-# LẤY CÔNG THỨC THEO MÃ MÓN
+# LẤY CÔNG THỨC THEO MÓN
+# URL: /recipe/recipes/1
 # =========================
 @recipe_bp.route("/recipes/<int:ma_mon>", methods=["GET"])
 def get_recipe(ma_mon):
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Đã bỏ CONGTHUC.MaCT
     sql = """
     SELECT
         NGUYENLIEU.MaNL,
@@ -75,145 +88,165 @@ def get_recipe(ma_mon):
         ON CONGTHUC.MaNL = NGUYENLIEU.MaNL
     WHERE CONGTHUC.MaMon = %s
     """
+
     cursor.execute(sql, (ma_mon,))
+
     result = cursor.fetchall()
 
     cursor.close()
     conn.close()
+
     return jsonify(result)
 
+
 # =========================
-# THÊM CÔNG THỨC MỚI
+# THÊM CÔNG THỨC
+# URL: POST /recipe/recipes
 # =========================
 @recipe_bp.route("/recipes", methods=["POST"])
 def add_recipe():
+
     data = request.json
+
     ma_mon = data["MaMon"]
+
     ingredients = data["ingredients"]
 
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
+
         for item in ingredients:
-            sql = """
-            INSERT INTO CONGTHUC (MaMon, MaNL, SoLuongSuDung)
-            VALUES (%s, %s, %s)
-            """
-            values = (ma_mon, item["MaNL"], item["SoLuongSuDung"])
-            cursor.execute(sql, values)
+
+            cursor.execute(
+                """
+                INSERT INTO CONGTHUC
+                (MaMon, MaNL, SoLuongSuDung)
+                VALUES (%s,%s,%s)
+                """,
+                (
+                    ma_mon,
+                    item["MaNL"],
+                    item["SoLuongSuDung"]
+                )
+            )
 
         conn.commit()
-        return jsonify({"message": "Thêm công thức thành công"})
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
 
-# =========================
-# CẬP NHẬT CÔNG THỨC (THEO MA_MON & MA_NL CŨ)
-# =========================
-@recipe_bp.route("/recipe/<int:ma_mon>/<int:old_ma_nl>", methods=["PUT"])
-def update_recipe(ma_mon, old_ma_nl):
-    data = request.json
-    new_ma_nl = data["MaNL"]
-    so_luong = data["SoLuongSuDung"]
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        sql = """
-        UPDATE CONGTHUC
-        SET MaNL = %s, SoLuongSuDung = %s
-        WHERE MaMon = %s AND MaNL = %s
-        """
-        values = (new_ma_nl, so_luong, ma_mon, old_ma_nl)
-        cursor.execute(sql, values)
-        conn.commit()
-        return jsonify({"message": "Cập nhật công thức thành công"})
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-# =========================
-# XÓA CÔNG THỨC (THEO MA_MON & MA_NL)
-# =========================
-@recipe_bp.route("/recipe/<int:ma_mon>/<int:ma_nl>", methods=["DELETE"])
-def delete_recipe(ma_mon, ma_nl):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    try:
-        sql = "DELETE FROM CONGTHUC WHERE MaMon = %s AND MaNL = %s"
-        cursor.execute(sql, (ma_mon, ma_nl))
-        conn.commit()
-        return jsonify({"message": "Xóa công thức thành công"})
-    except Exception as e:
-        conn.rollback()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-# ==================================
-# KIỂM TRA KHẢ NĂNG PHỤC VỤ (AVAILABILITY)
-# ==================================
-@recipe_bp.route("/menu/<int:ma_mon>/availability", methods=["GET"])
-def calculate_availability(ma_mon):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    sql = """
-    SELECT
-        MON.TenMon,
-        NGUYENLIEU.TenNL,
-        NGUYENLIEU.SoLuongTon,
-        CONGTHUC.SoLuongSuDung
-    FROM CONGTHUC
-    JOIN NGUYENLIEU
-        ON CONGTHUC.MaNL = NGUYENLIEU.MaNL
-    JOIN MON
-        ON CONGTHUC.MaMon = MON.MaMon
-    WHERE CONGTHUC.MaMon = %s
-    """
-    cursor.execute(sql, (ma_mon,))
-    ingredients = cursor.fetchall()
-
-    if len(ingredients) == 0:
-        cursor.close()
-        conn.close()
-        return jsonify({"message": "Món chưa được thiết lập công thức"})
-
-    servings = []
-    details = []
-
-    for item in ingredients:
-        available = item["SoLuongTon"] // item["SoLuongSuDung"]
-        servings.append(available)
-
-        details.append({
-            "NguyenLieu": item["TenNL"],
-            "TonKho": item["SoLuongTon"],
-            "CanDung": item["SoLuongSuDung"],
-            "PhucVuDuoc": int(available)
+        return jsonify({
+            "success": True,
+            "message": "Thêm công thức thành công"
         })
 
-    so_phan_con_lai = int(min(servings))
-    status = "CONBAN" if so_phan_con_lai > 0 else "HETHANG"
+    except Exception as e:
 
-    result = {
-        "TenMon": ingredients[0]["TenMon"],
-        "SoPhanConLai": so_phan_con_lai,
-        "TrangThai": status,
-        "ChiTiet": details
-    }
+        conn.rollback()
 
-    cursor.close()
-    conn.close()
-    return jsonify(result)
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+    finally:
+
+        cursor.close()
+        conn.close()
+
+
+# =========================
+# CẬP NHẬT CÔNG THỨC
+# URL: PUT /recipe/recipes/1/2
+# =========================
+@recipe_bp.route("/recipes/<int:ma_mon>/<int:old_ma_nl>", methods=["PUT"])
+def update_recipe(ma_mon, old_ma_nl):
+
+    data = request.json
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute(
+            """
+            UPDATE CONGTHUC
+            SET
+                MaNL = %s,
+                SoLuongSuDung = %s
+            WHERE
+                MaMon = %s
+            AND
+                MaNL = %s
+            """,
+            (
+                data["MaNL"],
+                data["SoLuongSuDung"],
+                ma_mon,
+                old_ma_nl
+            )
+        )
+
+        conn.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Cập nhật công thức thành công"
+        })
+
+    except Exception as e:
+
+        conn.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+    finally:
+
+        cursor.close()
+        conn.close()
+
+
+# =========================
+# XÓA CÔNG THỨC
+# URL: DELETE /recipe/recipes/1/2
+# =========================
+@recipe_bp.route("/recipes/<int:ma_mon>/<int:ma_nl>", methods=["DELETE"])
+def delete_recipe(ma_mon, ma_nl):
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute(
+            """
+            DELETE FROM CONGTHUC
+            WHERE MaMon = %s
+            AND MaNL = %s
+            """,
+            (ma_mon, ma_nl)
+        )
+
+        conn.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Xóa công thức thành công"
+        })
+
+    except Exception as e:
+
+        conn.rollback()
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+    finally:
+
+        cursor.close()
+        conn.close()
