@@ -355,11 +355,11 @@ VALUES
 INSERT INTO MON
 (TenMon, GiaBan, TrangThai, MoTa, MaDM)
 VALUES
-('Ca phe sua', 30000, 'Còn bán', 'Ca phe sua da', 1),
-('Bac xiu', 35000, 'Còn bán', 'Bac xiu nong', 1),
-('Tra sua tran chau', 45000, 'Còn bán', 'Tra sua size M', 2),
-('Nuoc cam', 40000, 'Còn bán', 'Cam tuoi', 3),
-('Tiramisu', 50000, 'Còn bán', 'Banh tiramisu', 4);
+('Ca phe sua', 30000, 'ACTIVE', 'Ca phe sua da', 1),
+('Bac xiu', 35000, 'ACTIVE', 'Bac xiu nong', 1),
+('Tra sua tran chau', 45000, 'ACTIVE', 'Tra sua size M', 2),
+('Nuoc cam', 40000, 'ACTIVE', 'Cam tuoi', 3),
+('Tiramisu', 50000, 'ACTIVE', 'Banh tiramisu', 4);
 
 -- ---- NGUYENLIEU ----
 INSERT INTO NGUYENLIEU
