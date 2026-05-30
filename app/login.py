@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
 import bcrypt
-from database.db import get_connection
+from app.database.db import get_connection
 
 auth_bp = Blueprint("auth", __name__)
 
+# Sửa từ "/" thành "/login" để khớp với định tuyến hệ thống /auth/login
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
@@ -24,14 +25,16 @@ def login():
     cursor.close()
     conn.close()
 
-    # ❌ phải check user trước
+    # check user
     if not user:
         return jsonify({"message": "Sai tài khoản"}), 401
 
     try:
+        # Ép kiểu dữ liệu mật khẩu từ database về dạng chuỗi utf-8 trước khi encode
+        db_password = str(user["MatKhau"])
         if not bcrypt.checkpw(
-            password.encode(),
-            user["MatKhau"].encode()
+            password.encode('utf-8'),
+            db_password.encode('utf-8')
         ):
             return jsonify({"message": "Sai mật khẩu"}), 401
     except Exception as e:

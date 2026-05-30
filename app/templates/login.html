@@ -3,44 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập – CoffeeMS</title>
+    <title>Đăng nhập</title>
 
-    <!-- FONT -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
-<body>
+    <body>
 
-    <div class="login-box">
+        <div class="login-box">
+            <div class="login-logo">
+                <div id="brand"> ☕</div>
+            </div>
 
-        <!-- LOGO -->
-        <div class="login-logo">
-            <div class="brand">☕ Coffee<span>MS</span></div>
-            <p>Hệ thống quản lý quán cà phê</p>
+            <div class="login-field">
+                <label for="username">Tên đăng nhập</label>
+                <input type="text" id="username" placeholder="Nhập username...">
+            </div>
+
+            <div class="login-field">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" placeholder="Nhập mật khẩu...">
+            </div>
+
+<button type="button" id="login-btn" onclick="login()">Đăng nhập</button>
+
+            <p id="msg"></p>
+
+            <div class="login-footer">admin, nhanvien1, nhanvien2, 123456</div>
         </div>
-
-        <!-- FORM -->
-        <div class="login-field">
-            <label for="username">Tên đăng nhập</label>
-            <input type="text" id="username" placeholder="Nhập username...">
-        </div>
-
-        <div class="login-field">
-            <label for="password">Mật khẩu</label>
-            <input type="password" id="password" placeholder="Nhập mật khẩu...">
-        </div>
-
-        <button class="login-btn" onclick="login()">Đăng nhập</button>
-
-        <p id="msg"></p>
-
-        <div class="login-footer">CoffeeMS &copy; 2026</div>
-    </div>
-
-    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
-</body>
+        <script src="{{ url_for('static', filename='js/role.js') }}"></script>
+    </body>
 </html>

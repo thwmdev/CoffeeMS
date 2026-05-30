@@ -11,10 +11,6 @@ inventory_bp = Blueprint(
 # =====================================================
 # GIAO DIỆN
 # =====================================================
-@inventory_bp.route("/", methods=["GET"])
-def home():
-    return render_template("inventory.html")
-
 
 # =====================================================
 # VALIDATE DÙNG CHUNG
@@ -631,4 +627,12 @@ def kiem_kho(maNL):
 
         if conn:
             conn.close()
+@inventory_bp.route("/")
+def home():
 
+    role = request.cookies.get("role")
+
+    if role != "ADMIN":
+        return "Không có quyền", 403
+
+    return render_template("report.html")

@@ -4,16 +4,23 @@ import datetime
 import csv
 import io
 
-report_bp = Blueprint("report", __name__, url_prefix="/report")
+report_bp = Blueprint(
+    "report",
+    __name__,
+    url_prefix="/report"
+)
 
 
 # =========================
 # GIAO DIỆN
 # =========================
-@report_bp.route("/", methods=["GET"])
-def report_page():
-    return render_template("report.html")
+from flask import Blueprint, render_template
 
+report_bp = Blueprint("report", __name__)
+
+@report_bp.route("/")
+def home():
+    return render_template("report.html")
 
 # =========================
 # TỔNG QUAN DOANH THU (UC06 – Bước 1 & 2)
@@ -525,3 +532,12 @@ def export_pdf():
     finally:
         cursor.close()
         conn.close()
+@report_bp.route("/")
+def home():
+
+    role = request.cookies.get("role")
+
+    if role != "ADMIN":
+        return "Không có quyền truy cập báo cáo", 403
+
+    return render_template("report.html")

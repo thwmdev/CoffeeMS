@@ -6,21 +6,22 @@ recipe_bp = Blueprint(
     __name__,
     url_prefix="/recipe"
 )
-
-# =========================
-# GIAO DIỆN CHÍNH
-# =========================
-@recipe_bp.route("/", methods=["GET"])
+@recipe_bp.route("/")
 def home():
-    return render_template("recipe.html")
 
+    role = request.cookies.get("role")
+
+    if role != "ADMIN":
+        return "Không có quyền", 403
+
+    return render_template("recipe.html")
 # =========================
 # LẤY TOÀN BỘ CÔNG THỨC
 # =========================
 # =========================
 # LẤY TOÀN BỘ CÔNG THỨC
 # =========================
-@recipe_bp.route("/recipes", methods=["GET"])
+@recipe_bp.route("/recipe", methods=["GET"])
 def get_all_recipes():
     try:
         conn = get_connection()
@@ -114,7 +115,7 @@ def add_recipe():
 # =========================
 # CẬP NHẬT CÔNG THỨC (THEO MA_MON & MA_NL CŨ)
 # =========================
-@recipe_bp.route("/recipes/<int:ma_mon>/<int:old_ma_nl>", methods=["PUT"])
+@recipe_bp.route("/recipe/<int:ma_mon>/<int:old_ma_nl>", methods=["PUT"])
 def update_recipe(ma_mon, old_ma_nl):
     data = request.json
     new_ma_nl = data["MaNL"]
@@ -143,7 +144,7 @@ def update_recipe(ma_mon, old_ma_nl):
 # =========================
 # XÓA CÔNG THỨC (THEO MA_MON & MA_NL)
 # =========================
-@recipe_bp.route("/recipes/<int:ma_mon>/<int:ma_nl>", methods=["DELETE"])
+@recipe_bp.route("/recipe/<int:ma_mon>/<int:ma_nl>", methods=["DELETE"])
 def delete_recipe(ma_mon, ma_nl):
     conn = get_connection()
     cursor = conn.cursor()

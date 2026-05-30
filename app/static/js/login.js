@@ -1,11 +1,15 @@
 async function login() {
 
     const username =
-        document.getElementById("username").value
+        document.getElementById("username").value;
 
     const password =
-        document.getElementById("password").value
-
+        document.getElementById("password").value;
+    if(username === "" || password === ""){
+        document.getElementById("msg").innerText =
+            "Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu";
+        return;
+    }
     const response = await fetch(
         "http://127.0.0.1:5000/auth/login",
         {
@@ -18,28 +22,24 @@ async function login() {
                 password
             })
         }
-    )
+    );
 
-    const data = await response.json()
+    const data = await response.json();
 
-    console.log(data)
+    console.log(data);
 
-    if(data.token){
+    if(response.ok){
 
-        localStorage.setItem(
-            "token",
-            data.token
-        )
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
 
-        localStorage.setItem(
-            "role",
-            data.role
-        )
-
-        alert("Login success")
-
-    } else {
-
-        alert(data.message)
+        if(data.role === "ADMIN"){
+             window.location.href = "/report";
+        }else{
+            window.location.href = "/payment";
+        }
+    }
+    else{
+        alert(data.message);
     }
 }

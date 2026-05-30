@@ -116,16 +116,46 @@
 
 <div class="wrapper">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
-        <ul>
-            <li onclick="location.href='/menu/'">Menu</li>
-            <li onclick="location.href='/payment/'">Inventory</li>
-            <li class="active">Thanh toán</li>
-            <li onclick="location.href='/report/'">Báo cáo</li>
-        </ul>
-    </div>
+ <div class="sidebar">
+
+    <h2 class="logo">
+        Quản Lý <br> Quán Cafe
+    </h2>
+
+    <ul>
+
+        <li id="menuModule"
+            onclick="location.href='/menu/'">
+            Menu
+        </li>
+
+        <li id="inventoryModule"
+            onclick="location.href='/inventory/'">
+            Kho
+        </li>
+
+        <li id="recipeModule"
+            onclick="location.href='/recipe/'">
+            Công thức
+        </li>
+
+        <li id="reportModule"
+            onclick="location.href='/report'">
+            Báo cáo
+        </li>
+
+        <li id="paymentModule"
+            onclick="location.href='/payment'">
+            Thanh toán
+        </li>
+
+        <li onclick="logout()">
+            Đăng xuất
+        </li>
+
+    </ul>
+
+</div>
 
     <!-- MAIN -->
     <div class="main-content">
@@ -282,40 +312,38 @@
                 <div class="price-row">
                     <span>Tổng tiền:</span>     <span id="invTong"></span>
                 </div>
-                <div class="price-row">
-                    <span>Giảm giá:</span>      <span id="invGiam" style="color:#16a34a;"></span>
+                    <div class="price-row">
+                        <span>Giảm giá:</span>      <span id="invGiam" style="color:#16a34a;"></span>
+                    </div>
+                    <div class="price-row">
+                        <span>VAT (10%):</span>     <span id="invVAT"></span>
+                    </div>
+                    <div class="price-row" style="font-size:20px;font-weight:700;color:#ff9800;">
+                        <span>Thanh toán:</span>    <span id="invTT"></span>
+                    </div>
+                    <div class="price-row" id="invThoi" style="display:none;">
+                        <span>Tiền thối:</span>     <span id="invThoiVal"></span>
+                    </div>
                 </div>
-                <div class="price-row">
-                    <span>VAT (10%):</span>     <span id="invVAT"></span>
+
+                <p style="text-align:center;margin-top:24px;color:#6b7280;font-size:13px;">
+                    Cảm ơn quý khách! Hẹn gặp lại ☕
+                </p>
+
+                <div class="action-buttons" style="margin-top:20px;">
+                    <button class="btn btn-warning no-print" onclick="printInvoiceBill()">
+                        🖨️ In hóa đơn
+                    </button>
+                    <button class="btn btn-dark no-print" onclick="resetPayment()">
+                        ➕ Đơn tiếp theo
+                    </button>
                 </div>
-                <div class="price-row" style="font-size:20px;font-weight:700;color:#ff9800;">
-                    <span>Thanh toán:</span>    <span id="invTT"></span>
-                </div>
-                <div class="price-row" id="invThoi" style="display:none;">
-                    <span>Tiền thối:</span>     <span id="invThoiVal"></span>
-                </div>
-            </div>
 
-            <p style="text-align:center;margin-top:24px;color:#6b7280;font-size:13px;">
-                Cảm ơn quý khách! Hẹn gặp lại ☕
-            </p>
+            </div><!-- /invoiceBox -->
 
-            <div class="action-buttons" style="margin-top:20px;">
-                <button class="btn btn-warning no-print" onclick="printInvoiceBill()">
-                    🖨️ In hóa đơn
-                </button>
-                <button class="btn btn-dark no-print" onclick="resetPayment()">
-                    ➕ Đơn tiếp theo
-                </button>
-            </div>
+        </div><!-- /main-content -->
+    </div><!-- /wrapper -->
 
-        </div><!-- /invoiceBox -->
-
-    </div><!-- /main-content -->
-</div><!-- /wrapper -->
-
-<!-- JS -->
-<script src="{{ url_for('static', filename='js/payment.js') }}"></script>
-
-</body>
+    <script src="{{ url_for('static', filename='js/role.js') }}"></script>
+    </body>
 </html>

@@ -9,11 +9,13 @@ payment_bp = Blueprint("payment", __name__, url_prefix="/payment")
 # =========================
 # GIAO DIỆN
 # =========================
-@payment_bp.route("/", methods=["GET"])
-def payment_page():
+from flask import Blueprint, render_template
+
+payment_bp = Blueprint("payment", __name__)
+
+@payment_bp.route("/")
+def home():
     return render_template("payment.html")
-
-
 # =========================
 # LẤY ĐƠN HÀNG THEO BÀN
 # =========================

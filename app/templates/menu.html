@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
 
-    <title>Coffee Menu Dashboard</title>
+    <title>Coffee Menu</title>
 
     <!-- BOOTSTRAP -->
     <link
@@ -35,24 +35,46 @@
 
 <div class="wrapper">
 
-    <!-- =========================
-         SIDEBAR
-    ========================== -->
-<div class="sidebar">
-        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
-        <ul>
-            <li class="active" onclick="window.location.href='/menu/'" style="cursor: pointer;">Menu</li>
-            
-            <li onclick="window.location.href='/inventory/'" style="cursor: pointer;">Inventory</li>
-            
-            <li onclick="window.location.href='/recipe/'" style="cursor: pointer;">Recipe</li>
-            
-            <li onclick="window.location.href='/orders/'" style="cursor: pointer;">Orders</li>
-            
-            <li onclick="window.location.href='/reports/'" style="cursor: pointer;">Reports</li>
-        </ul>
-    </div>
+   <div class="sidebar">
 
+    <h2 class="logo">
+        Quản Lý <br> Quán Cafe
+    </h2>
+
+    <ul>
+
+        <li id="menuModule"
+            onclick="location.href='/menu'">
+            Menu
+        </li>
+
+        <li id="inventoryModule"
+            onclick="location.href='/inventory'">
+            Kho
+        </li>
+
+        <li id="recipeModule"
+            onclick="location.href='/recipe'">
+            Công thức
+        </li>
+
+        <li id="reportModule"
+            onclick="location.href='/report'">
+            Báo cáo
+        </li>
+
+        <li id="paymentModule"
+            onclick="location.href='/payment'">
+            Thanh toán
+        </li>
+
+        <li onclick="logout()">
+            Đăng xuất
+        </li>
+
+    </ul>
+
+</div>
     <!-- =========================
          MAIN CONTENT
     ========================== -->
@@ -268,12 +290,7 @@
 
 </div>
 
-
-<!-- JS -->
-<script
-    src="{{ url_for('static', filename='js/menu.js') }}"
-></script>
-
+<script src="{{ url_for('static', filename='js/role.js') }}"></script>
 </body>
 
 </html>

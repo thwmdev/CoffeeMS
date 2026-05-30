@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify
-import bcrypt
 import jwt
 import datetime
 from app.database.db import get_connection
@@ -10,6 +9,7 @@ SECRET_KEY = "secret-key-demo"
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+
     data = request.json
 
     username = data["username"]
@@ -19,7 +19,11 @@ def login():
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute(
-        "SELECT * FROM TAIKHOAN WHERE TenDangNhap=%s",
+        """
+        SELECT *
+        FROM TAIKHOAN
+        WHERE TenDangNhap = %s
+        """,
         (username,)
     )
 
@@ -29,16 +33,21 @@ def login():
     conn.close()
 
     if not user:
-        return jsonify({"message": "Sai tài khoản"}), 400
+        return jsonify({"message": "Sai tài khoản"}), 401
 
-    if not bcrypt.checkpw(password.encode(), user["MatKhau"].encode()):
-        return jsonify({"message": "Sai mật khẩu"}), 400
+    if password != user["MatKhau"]:
+        return jsonify({"message": "Sai mật khẩu"}), 401
 
-    token = jwt.encode({
-        "MaTK": user["MaTK"],
-        "role": user["VaiTro"],
-        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
-    }, SECRET_KEY, algorithm="HS256")
+    token = jwt.encode(
+        {
+            "MaTK": user["MaTK"],
+            "role": user["VaiTro"],
+            "exp": datetime.datetime.utcnow()
+            + datetime.timedelta(hours=2)
+        },
+        SECRET_KEY,
+        algorithm="HS256"
+    )
 
     return jsonify({
         "token": token,

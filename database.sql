@@ -330,9 +330,9 @@ VALUES
 INSERT INTO NHANVIEN
 (HoTen, SDT, Email, MaTK)
 VALUES
-('Nguyen Van A', '0900000001', 'a@gmail.com', 1),
-('Tran Thi B', '0900000002', 'b@gmail.com', 2),
-('Le Van C', '0900000003', 'c@gmail.com', 3);
+('A', '0900000001', 'a@gmail.com', 1),
+('B', '0900000002', 'b@gmail.com', 2),
+('C', '0900000003', 'c@gmail.com', 3);
 
 -- ---- BAN ----
 INSERT INTO BAN
