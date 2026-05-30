@@ -250,3 +250,90 @@ def delete_recipe(ma_mon, ma_nl):
 
         cursor.close()
         conn.close()
+
+# ==================================
+# KIỂM TRA KHẢ NĂNG PHỤC VỤ
+# URL: /recipe/menu/<ma_mon>/availability
+# ==================================
+@recipe_bp.route("/menu/<int:ma_mon>/availability", methods=["GET"])
+def calculate_availability(ma_mon):
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+
+        sql = """
+        SELECT
+            MON.TenMon,
+            NGUYENLIEU.TenNL,
+            NGUYENLIEU.SoLuongTon,
+            CONGTHUC.SoLuongSuDung
+        FROM CONGTHUC
+        JOIN NGUYENLIEU
+            ON CONGTHUC.MaNL = NGUYENLIEU.MaNL
+        JOIN MON
+            ON CONGTHUC.MaMon = MON.MaMon
+        WHERE CONGTHUC.MaMon = %s
+        """
+
+        cursor.execute(sql, (ma_mon,))
+        ingredients = cursor.fetchall()
+
+        if not ingredients:
+
+            return jsonify({
+                "message": "Món chưa được thiết lập công thức"
+            })
+
+        servings = []
+        details = []
+
+        for item in ingredients:
+
+            # Tránh chia cho 0
+            if item["SoLuongSuDung"] <= 0:
+                continue
+
+            available = int(
+                item["SoLuongTon"] //
+                item["SoLuongSuDung"]
+            )
+
+            servings.append(available)
+
+            details.append({
+                "NguyenLieu": item["TenNL"],
+                "TonKho": item["SoLuongTon"],
+                "CanDung": item["SoLuongSuDung"],
+                "PhucVuDuoc": available
+            })
+
+        if len(servings) == 0:
+
+            return jsonify({
+                "message": "Công thức không hợp lệ"
+            })
+
+        so_phan_con_lai = min(servings)
+
+        return jsonify({
+            "TenMon": ingredients[0]["TenMon"],
+            "SoPhanConLai": int(so_phan_con_lai),
+            "TrangThai": "CONBAN" if so_phan_con_lai > 0 else "HETHANG",
+            "ChiTiet": details
+        })
+
+    except Exception as e:
+
+        print("LỖI AVAILABILITY:", e)
+
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+    finally:
+
+        cursor.close()
+        conn.close()

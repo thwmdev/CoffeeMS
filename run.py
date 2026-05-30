@@ -10,3 +10,4 @@ if __name__ == "__main__":
         print(f"{str(e)}")
 
     app.run(debug=True)
+print(app.url_map)
