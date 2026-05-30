@@ -1,55 +1,68 @@
 from flask import Blueprint, request, jsonify
-import jwt
-import datetime
 from app.database.db import get_connection
+
+# 👉 ĐỒNG BỘ BẢO MẬT
+from app.security.hash import verify_password
+from app.security.jwthandler import encode_token
 
 auth_bp = Blueprint("auth", __name__)
 
-SECRET_KEY = "secret-key-demo"
-
 @auth_bp.route("/login", methods=["POST"])
 def login():
-
     data = request.json
 
-    username = data["username"]
-    password = data["password"]
+    username = data.get("username")
+    password = data.get("password")
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute(
-        """
-        SELECT *
-        FROM TAIKHOAN
-        WHERE TenDangNhap = %s
-        """,
+        "SELECT * FROM TAIKHOAN WHERE TenDangNhap=%s",
         (username,)
     )
-
     user = cursor.fetchone()
 
     cursor.close()
     conn.close()
 
+    # 1. Kiểm tra tài khoản tồn tại
     if not user:
         return jsonify({"message": "Sai tài khoản"}), 401
 
-    if password != user["MatKhau"]:
-        return jsonify({"message": "Sai mật khẩu"}), 401
+    try:
+        db_password = user["MatKhau"]
+        
+        # ép chuyển đổi sang str
+        if isinstance(db_password, (bytes, bytearray)):
+            db_password = db_password.decode('utf-8')
+        else:
+            db_password = str(db_password)
 
-    token = jwt.encode(
-        {
-            "MaTK": user["MaTK"],
-            "role": user["VaiTro"],
-            "exp": datetime.datetime.utcnow()
-            + datetime.timedelta(hours=2)
-        },
-        SECRET_KEY,
-        algorithm="HS256"
-    )
+
+
+        print(f"Mat khau vao: {password}")
+        print(f"Mat khau tu db: {db_password}")
+
+
+
+        if not verify_password(password, db_password):
+            return jsonify({"message": "Sai mật khẩu"}), 401
+            
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({"message": "validation error", "error": str(e)}), 500
+
+
+    # JWT Token 
+    
+    payload = {
+        "username": user["TenDangNhap"],
+        "role": user["VaiTro"]
+    }
+    real_token = encode_token(payload)
 
     return jsonify({
-        "token": token,
+        "token": real_token,
         "role": user["VaiTro"]
     })
