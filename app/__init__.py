@@ -17,6 +17,7 @@ def create_app():
     from app.routers.inventory import inventory_bp
     from app.routers.recipe import recipe_bp
     from app.routers.pageR import pageR
+    from app.routers.order_manage import order_manage_bp
 
     # register blueprint
     app.register_blueprint(auth_bp, url_prefix="/auth")
@@ -24,6 +25,7 @@ def create_app():
     app.register_blueprint(inventory_bp, url_prefix="/inventory")
     app.register_blueprint(recipe_bp, url_prefix="/recipe")
     app.register_blueprint(pageR)
+    app.register_blueprint(order_manage_bp,  url_prefix="/order")
 
     print(app.url_map)
 

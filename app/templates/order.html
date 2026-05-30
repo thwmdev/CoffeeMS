@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gọi Món & Quản Lý Bàn</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/order.css') }}">
+</head>
+<body>
+
+<div class="wrapper">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
+        <ul>
+            <li onclick="location.href='/menu/'">Menu</li>
+            <li class="active">Gọi Món</li>
+            <li onclick="location.href='/payment/'">Thanh Toán</li>
+            <li onclick="location.href='/report/'">Báo Cáo</li>
+        </ul>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+
+        <!-- HEADER -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Gọi món & Quản lý bàn</h1>
+                <p class="page-sub">Chọn bàn để tạo hoặc xem đơn hàng</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn-refresh" onclick="loadTables()">Làm mới</button>
+            </div>
+        </div>
+
+        <!-- LAYOUT: BẢNG BÊN TRÁI + ĐƠN BÊN PHẢI -->
+        <div class="order-layout">
+
+            <!-- ───────── CỘT TRÁI: DANH SÁCH BÀN ───────── -->
+            <div class="col-tables">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2> Sơ đồ bàn</h2>
+                        <div class="legend">
+                            <span class="leg leg-empty">Trống</span>
+                            <span class="leg leg-busy">Đang dùng</span>
+                            <span class="leg leg-reserved">Đã đặt</span>
+                        </div>
+                    </div>
+                    <div id="tableGrid" class="table-grid">
+                        <!-- Rendered by JS -->
+                        <div class="loading-pulse">Đang tải bàn...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ───────── CỘT PHẢI: CHI TIẾT ĐƠN ───────── -->
+            <div class="col-order">
+
+                <!-- Panel chưa chọn bàn -->
+                <div id="panelEmpty" class="panel-empty">
+                    <div class="panel-empty-icon"></div>
+                    <p>Chọn một bàn để bắt đầu</p>
+                </div>
+
+                <!-- Panel đơn hàng -->
+                <div id="panelOrder" style="display:none;">
+
+                    <!-- Header đơn -->
+                    <div class="order-header">
+                        <div>
+                            <h2 id="orderTitle">Bàn #</h2>
+                            <span id="orderStatus" class="status-badge"></span>
+                        </div>
+                        <div class="order-actions">
+                            <button class="btn-icon btn-transfer" title="Chuyển bàn" onclick="openTransferModal()">🔀</button>
+                            <button class="btn-icon btn-merge" title="Gộp bàn" onclick="openMergeModal()">🔗</button>
+                            <button class="btn-icon btn-cancel" title="Hủy đơn" onclick="cancelOrder()">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Tìm kiếm món -->
+                    <div class="search-area">
+                        <div class="search-bar">
+                            <span class="search-icon"></span>
+                            <input
+                                type="text"
+                                id="searchInput"
+                                placeholder="Tìm món (Cà phê, Trà sữa...)"
+                                oninput="handleSearch()"
+                                autocomplete="off"
+                            >
+                            <button class="btn-clear-search" onclick="clearSearch()" id="btnClearSearch" style="display:none;">✕</button>
+                        </div>
+                        <select id="filterCat" onchange="handleSearch()" class="cat-select">
+                            <option value="">Tất cả danh mục</option>
+                        </select>
+                    </div>
+
+                    <!-- Kết quả tìm kiếm -->
+                    <div id="searchResults" class="search-results" style="display:none;"></div>
+
+                    <!-- Danh sách món trong đơn -->
+                    <div class="order-items-header">
+                        <span>Đơn hàng</span>
+                        <span id="orderItemCount" class="item-count">0 món</span>
+                    </div>
+
+                    <div id="orderItems" class="order-items">
+                        <div class="empty-order">
+                            <p>Chưa có món nào trong đơn</p>
+                        </div>
+                    </div>
+
+                    <!-- Tổng tiền + actions -->
+                    <div class="order-footer">
+                        <div class="order-total">
+                            <span>Tổng cộng</span>
+                            <span id="orderTotal" class="total-amount">0 đ</span>
+                        </div>
+                        <div class="footer-actions">
+                            <button class="btn-send" id="btnSend" onclick="sendToKitchen()">
+                                 Gửi bếp/bar
+                            </button>
+                        </div>
+                    </div>
+
+                </div><!-- /panelOrder -->
+
+                <!-- Panel tạo đơn mới -->
+                <div id="panelNewOrder" style="display:none;" class="panel-new-order">
+                    <div class="panel-empty-icon"></div>
+                    <p id="panelNewOrderText">Bàn trống, tạo đơn mới?</p>
+                    <button class="btn-create" onclick="createOrder()">+ Tạo đơn hàng</button>
+                </div>
+
+            </div><!-- /col-order -->
+
+        </div><!-- /order-layout -->
+
+    </div><!-- /main-content -->
+</div><!-- /wrapper -->
+
+
+<!-- ─────────────── MODAL CHUYỂN BÀN ─────────────── -->
+<div id="modalTransfer" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3> Chuyển Bàn</h3>
+            <button class="modal-close" onclick="closeModal('modalTransfer')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc">Chuyển toàn bộ đơn hiện tại sang bàn trống khác.</p>
+            <label class="modal-label">Chọn bàn đích</label>
+            <select id="transferTarget" class="modal-select">
+                <option value="">-- Chọn bàn trống --</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalTransfer')">Hủy</button>
+            <button class="btn-modal-confirm" onclick="confirmTransfer()">Xác nhận chuyển</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ─────────────── MODAL GỘP BÀN ─────────────── -->
+<div id="modalMerge" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3> Gộp Bàn</h3>
+            <button class="modal-close" onclick="closeModal('modalMerge')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc">Gộp một đơn khác vào đơn hiện tại. Đơn phụ sẽ bị hủy sau khi gộp.</p>
+            <label class="modal-label">Chọn bàn cần gộp vào đây</label>
+            <select id="mergeTarget" class="modal-select">
+                <option value="">-- Chọn bàn đang dùng --</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalMerge')">Hủy</button>
+            <button class="btn-modal-confirm btn-merge-confirm" onclick="confirmMerge()">Xác nhận gộp</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ─────────────── MODAL GHI CHÚ ─────────────── -->
+<div id="modalNote" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h3> Ghi chú món</h3>
+            <button class="modal-close" onclick="closeModal('modalNote')">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="noteMaCTDH">
+            <textarea id="noteContent" class="modal-textarea" placeholder="VD: ít đá, không đường, thêm kem..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalNote')">Hủy</button>
+            <button class="btn-modal-confirm" onclick="confirmNote()">Lưu ghi chú</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- TOAST NOTIFICATION -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+
+<script src="{{ url_for('static', filename='js/order.js') }}"></script>
+</body>
+</html>
