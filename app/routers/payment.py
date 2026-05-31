@@ -1,555 +1,441 @@
-from flask import Blueprint, make_response, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, session
 from app.database.db import get_connection
 import datetime
 
 payment_bp = Blueprint("payment", __name__, url_prefix="/payment")
 
+# ─────────────────────────────────────────────
+# HELPER
+# ─────────────────────────────────────────────
 
-# =========================
-# LẤY ĐƠN HÀNG THEO BÀN
-# =========================
-@payment_bp.route("/order/table/<int:ma_ban>", methods=["GET"])
+def _row_to_dict(cursor, row):
+    """Chuyển một row thành dict dựa vào tên cột."""
+    cols = [d[0] for d in cursor.description]
+    return dict(zip(cols, row))
+
+
+def _rows_to_list(cursor, rows):
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, r)) for r in rows]
+
+
+def _serialize(obj):
+    """JSON-serialize các kiểu dữ liệu đặc biệt (Decimal, datetime)."""
+    from decimal import Decimal
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, (datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
+
+
+def success(data=None, message="Thành công", status=200):
+    return jsonify({"success": True, "message": message, "data": data}), status
+
+
+def error(message="Có lỗi xảy ra", status=400):
+    return jsonify({"success": False, "message": message, "data": None}), status
+
+
+# ─────────────────────────────────────────────
+# RENDER PAGE
+# ─────────────────────────────────────────────
+
+@payment_bp.route("/")
+def index():
+    return render_template("payment.html")
+
+
+# ─────────────────────────────────────────────
+# [1] DANH SÁCH BÀN
+# GET /payment/tables
+# Trả về tất cả bàn kèm trạng thái.
+# ─────────────────────────────────────────────
+
+@payment_bp.route("/tables", methods=["GET"])
+def get_tables():
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    b.MaBan,
+                    b.TenBan,
+                    b.SoChoNgoi,
+                    b.TrangThai,
+                    d.MaDon,
+                    d.TrangThai   AS TrangThaiDon,
+                    d.TongTien,
+                    d.GiamGia,
+                    d.ThanhTien
+                FROM BAN b
+                LEFT JOIN DONHANG d
+                    ON d.MaBan = b.MaBan
+                    AND d.TrangThai NOT IN ('DATHANHTOAN', 'HUY')
+                ORDER BY b.MaBan
+            """)
+            rows = cur.fetchall()
+            cols = [d[0] for d in cur.description]
+            tables = [dict(zip(cols, r)) for r in rows]
+
+        import json
+        return jsonify({
+            "success": True,
+            "message": "Thành công",
+            "data": json.loads(
+                json.dumps(tables, default=_serialize)
+            )
+        })
+    except Exception as e:
+        return error(str(e), 500)
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# [2] CHI TIẾT ĐƠN HÀNG THEO BÀN
+# GET /payment/tables/<ma_ban>/order
+# Trả về đơn hàng đang hoạt động của bàn + chi tiết từng món.
+# ─────────────────────────────────────────────
+
+@payment_bp.route("/tables/<int:ma_ban>/order", methods=["GET"])
 def get_order_by_table(ma_ban):
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
-        cursor.execute(
-            """
-            SELECT
-                DH.MaDon,
-                DH.NgayTao,
-                DH.TrangThai,
-                DH.TongTien,
-                DH.GiamGia,
-                DH.ThanhTien,
-                DH.MaBan,
-                DH.MaNV,
-                B.TenBan,
-                NV.HoTen AS TenNhanVien
-            FROM DONHANG DH
-            JOIN BAN B ON DH.MaBan = B.MaBan
-            LEFT JOIN NHANVIEN NV ON DH.MaNV = NV.MaNV
-            WHERE DH.MaBan = %s
-              AND DH.TrangThai IN ('XACNHAN','DANGPHUCVU','CHOTHANHTOAN')
-            ORDER BY DH.NgayTao DESC
-            LIMIT 1
-            """,
-            (ma_ban,)
-        )
-        order = cursor.fetchone()
+        with conn.cursor() as cur:
+            # Lấy đơn hàng đang hoạt động
+            cur.execute("""
+                SELECT d.*, nv.HoTen AS TenNhanVien
+                FROM DONHANG d
+                JOIN NHANVIEN nv ON nv.MaNV = d.MaNV
+                WHERE d.MaBan = %s
+                  AND d.TrangThai NOT IN ('DATHANHTOAN', 'HUY')
+                ORDER BY d.NgayTao DESC
+                LIMIT 1
+            """, (ma_ban,))
+            row = cur.fetchone()
 
-        if not order:
-            return jsonify({
-                "success": False,
-                "message": "Không tìm thấy đơn hàng cho bàn này"
-            }), 404
+            if not row:
+                return success(None, "Bàn đang trống")
 
-        cursor.execute(
-            """
-            SELECT
-                CTDH.MaCTDH,
-                CTDH.MaMon,
-                CTDH.SoLuong,
-                CTDH.DonGia,
-                CTDH.GhiChu,
-                CTDH.TrangThaiMon,
-                MON.TenMon
-            FROM CHITIETDONHANG CTDH
-            JOIN MON ON CTDH.MaMon = MON.MaMon
-            WHERE CTDH.MaDon = %s
-            """,
-            (order["MaDon"],)
-        )
-        items = cursor.fetchall()
+            cols = [d[0] for d in cur.description]
+            order = dict(zip(cols, row))
 
-        if order.get("NgayTao") and hasattr(order["NgayTao"], "strftime"):
-            order["NgayTao"] = order["NgayTao"].strftime("%Y-%m-%d %H:%M:%S")
+            # Lấy chi tiết các món trong đơn
+            cur.execute("""
+                SELECT
+                    ct.MaCTDH,
+                    ct.MaMon,
+                    m.TenMon,
+                    ct.SoLuong,
+                    ct.DonGia,
+                    ct.GhiChu,
+                    ct.TrangThaiMon
+                FROM CHITIETDONHANG ct
+                JOIN MON m ON m.MaMon = ct.MaMon
+                WHERE ct.MaDon = %s
+                ORDER BY ct.MaCTDH
+            """, (order["MaDon"],))
+            items = _rows_to_list(cur, cur.fetchall())
+            order["ChiTiet"] = items
 
-        order["ChiTiet"] = items
-        return jsonify({"success": True, "data": order})
-
+        import json
+        return jsonify({
+            "success": True,
+            "message": "Thành công",
+            "data": json.loads(json.dumps(order, default=_serialize))
+        })
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
+        return error(str(e), 500)
     finally:
-        cursor.close()
         conn.close()
 
 
-# =========================
-# LẤY ĐƠN HÀNG THEO MÃ ĐƠN
-# =========================
-@payment_bp.route("/order/<int:ma_don>", methods=["GET"])
-def get_order_by_id(ma_don):
+# ─────────────────────────────────────────────
+# [3] DANH SÁCH VOUCHER ĐANG HOẠT ĐỘNG
+# GET /payment/vouchers
+# Trả về các mã khuyến mãi còn hiệu lực.
+# ─────────────────────────────────────────────
+
+@payment_bp.route("/vouchers", methods=["GET"])
+def get_vouchers():
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
-        cursor.execute(
-            """
-            SELECT
-                DH.MaDon,
-                DH.NgayTao,
-                DH.TrangThai,
-                DH.TongTien,
-                DH.GiamGia,
-                DH.ThanhTien,
-                DH.MaBan,
-                DH.MaNV,
-                B.TenBan,
-                NV.HoTen AS TenNhanVien
-            FROM DONHANG DH
-            JOIN BAN B ON DH.MaBan = B.MaBan
-            LEFT JOIN NHANVIEN NV ON DH.MaNV = NV.MaNV
-            WHERE DH.MaDon = %s
-              AND DH.TrangThai IN ('XACNHAN','DANGPHUCVU','CHOTHANHTOAN')
-            """,
-            (ma_don,)
-        )
-        order = cursor.fetchone()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT MaKM, MaCode, LoaiKM, GiaTri, NgayHetHan, TrangThai
+                FROM KHUYENMAI
+                WHERE TrangThai = 'HOATDONG'
+                  AND (NgayHetHan IS NULL OR NgayHetHan >= NOW())
+                ORDER BY MaKM
+            """)
+            rows = _rows_to_list(cur, cur.fetchall())
 
-        if not order:
-            return jsonify({
-                "success": False,
-                "message": "Không tìm thấy đơn hàng"
-            }), 404
-
-        cursor.execute(
-            """
-            SELECT CTDH.*, MON.TenMon
-            FROM CHITIETDONHANG CTDH
-            JOIN MON ON CTDH.MaMon = MON.MaMon
-            WHERE CTDH.MaDon = %s
-            """,
-            (ma_don,)
-        )
-        items = cursor.fetchall()
-
-        if order.get("NgayTao") and hasattr(order["NgayTao"], "strftime"):
-            order["NgayTao"] = order["NgayTao"].strftime("%Y-%m-%d %H:%M:%S")
-
-        order["ChiTiet"] = items
-        return jsonify({"success": True, "data": order})
-
+        import json
+        return jsonify({
+            "success": True,
+            "message": "Thành công",
+            "data": json.loads(json.dumps(rows, default=_serialize))
+        })
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
+        return error(str(e), 500)
     finally:
-        cursor.close()
         conn.close()
 
 
-# =========================
-# LẤY DANH SÁCH BÀN
-# =========================
-@payment_bp.route("/tables", methods=["GET"])
-def get_tables_with_orders():
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+# ─────────────────────────────────────────────
+# [4] KIỂM TRA & ÁP DỤNG VOUCHER
+# POST /payment/vouchers/apply
+# Body: { "ma_code": "GIAM10", "tong_tien": 90000 }
+# Trả về số tiền giảm thực tế.
+# ─────────────────────────────────────────────
 
-    try:
-        cursor.execute(
-            """
-            SELECT
-                B.MaBan,
-                B.TenBan,
-                B.TrangThai,
-                DH.MaDon,
-                DH.TongTien,
-                DH.NgayTao
-            FROM BAN B
-            LEFT JOIN DONHANG DH
-                ON B.MaBan = DH.MaBan
-                AND DH.TrangThai IN ('XACNHAN','DANGPHUCVU','CHOTHANHTOAN')
-            ORDER BY B.MaBan
-            """
-        )
-        tables = cursor.fetchall()
-
-        for t in tables:
-            if t.get("NgayTao") and hasattr(t["NgayTao"], "strftime"):
-                t["NgayTao"] = t["NgayTao"].strftime("%Y-%m-%d %H:%M:%S")
-
-        return jsonify({"success": True, "data": tables})
-
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
-    finally:
-        cursor.close()
-        conn.close()
-
-
-# =========================
-# ÁP DỤNG MÃ GIẢM GIÁ (UC02.1)
-# =========================
-@payment_bp.route("/apply-voucher", methods=["POST"])
+@payment_bp.route("/vouchers/apply", methods=["POST"])
 def apply_voucher():
-    data = request.json
-    ma_code   = (data.get("MaCode") or "").strip()
-    tong_tien = float(data.get("TongTien", 0))
+    data = request.get_json()
+    ma_code  = (data or {}).get("ma_code", "").strip().upper()
+    tong_tien = float((data or {}).get("tong_tien", 0))
 
     if not ma_code:
-        return jsonify({"success": False, "message": "Vui lòng nhập mã giảm giá"}), 400
+        return error("Vui lòng nhập mã voucher")
+    if tong_tien <= 0:
+        return error("Tổng tiền không hợp lệ")
 
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
-        cursor.execute(
-            """
-            SELECT *
-            FROM KHUYENMAI
-            WHERE MaCode = %s
-              AND TrangThai = 'HOATDONG'
-              AND (NgayHetHan IS NULL OR NgayHetHan >= NOW())
-            """,
-            (ma_code,)
-        )
-        voucher = cursor.fetchone()
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT MaKM, MaCode, LoaiKM, GiaTri, NgayHetHan, TrangThai
+                FROM KHUYENMAI
+                WHERE MaCode = %s
+            """, (ma_code,))
+            row = cur.fetchone()
 
-        if not voucher:
+            if not row:
+                return error("Mã voucher không tồn tại")
+
+            cols = [d[0] for d in cur.description]
+            km = dict(zip(cols, row))
+
+            if km["TrangThai"] != "HOATDONG":
+                return error("Mã voucher đã hết hạn hoặc không hoạt động")
+            if km["NgayHetHan"] and km["NgayHetHan"] < datetime.datetime.now():
+                return error("Mã voucher đã hết hạn")
+
+            from decimal import Decimal
+            gia_tri = float(km["GiaTri"])
+
+            if km["LoaiKM"] == "PHANTRAM":
+                giam = round(tong_tien * gia_tri / 100, 2)
+            else:  # TIENMAT
+                giam = min(gia_tri, tong_tien)
+
+            import json
             return jsonify({
-                "success": False,
-                "message": "Mã giảm giá không hợp lệ hoặc đã hết hạn"
-            }), 400
-
-        if voucher["LoaiKM"] == "PHANTRAM":
-            giam_gia = tong_tien * float(voucher["GiaTri"]) / 100
-        else:
-            giam_gia = min(float(voucher["GiaTri"]), tong_tien)
-
-        thanh_tien = tong_tien - giam_gia
-
-        return jsonify({
-            "success": True,
-            "MaKM": voucher["MaKM"],
-            "GiamGia": round(giam_gia, 2),
-            "ThanhTien": round(thanh_tien, 2),
-            "message": f"Áp dụng thành công – Giảm {giam_gia:,.0f}đ"
-        })
-
+                "success": True,
+                "message": f"Áp dụng thành công voucher {ma_code}",
+                "data": json.loads(json.dumps({
+                    "MaKM":    km["MaKM"],
+                    "MaCode":  km["MaCode"],
+                    "LoaiKM":  km["LoaiKM"],
+                    "GiaTri":  km["GiaTri"],
+                    "GiamGia": giam,
+                    "ThanhTien": round(tong_tien - giam, 2)
+                }, default=_serialize))
+            })
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
+        return error(str(e), 500)
     finally:
-        cursor.close()
         conn.close()
 
 
-# =========================
-# HOÀN TẤT THANH TOÁN (UC02 – Bước 4)
-# =========================
-@payment_bp.route("/checkout", methods=["POST"])
-def checkout():
-    data = request.json
+# ─────────────────────────────────────────────
+# [5] THANH TOÁN ĐƠN HÀNG
+# POST /payment/orders/<ma_don>/checkout
+# Body:
+# {
+#   "phuong_thuc": "TIENMAT" | "CHUYENKHOAN" | "KETHOP",
+#   "tien_mat": 100000,
+#   "tien_chuyen_khoan": 0,
+#   "ma_km": 1,          (optional)
+#   "giam_gia": 5000,    (optional)
+#   "vat": 0             (optional)
+# }
+# Logic:
+#   1. Kiểm tra đơn hàng hợp lệ & chưa thanh toán
+#   2. Tính tiền thối
+#   3. Ghi bảng THANHTOAN
+#   4. Cập nhật DONHANG: TrangThai=DATHANHTOAN, GiamGia, ThanhTien
+#   5. Cập nhật BAN: TrangThai=TRONG
+#   6. Ghi lịch sử đơn hàng (LICHSUDONHANG)
+#   (Trừ nguyên liệu KHÔNG nằm ở đây — được xử lý ở module order khi thêm món)
+# ─────────────────────────────────────────────
 
-    ma_don      = data.get("MaDon")
-    phuong_thuc = data.get("PhuongThuc", "TIENMAT")
-    so_tien_vao = float(data.get("SoTienVao", 0))
-    ma_km       = data.get("MaKM")
-    giam_gia    = float(data.get("GiamGia", 0))
-    vat_rate    = float(data.get("VATRate", 0.1))
+@payment_bp.route("/orders/<int:ma_don>/checkout", methods=["POST"])
+def checkout(ma_don):
+    data = request.get_json() or {}
+    phuong_thuc       = data.get("phuong_thuc", "").upper()
+    tien_mat          = float(data.get("tien_mat", 0))
+    tien_chuyen_khoan = float(data.get("tien_chuyen_khoan", 0))
+    ma_km             = data.get("ma_km")           # int hoặc None
+    giam_gia          = float(data.get("giam_gia", 0))
+    vat               = float(data.get("vat", 0))
 
-    if not ma_don:
-        return jsonify({"success": False, "message": "Thiếu mã đơn hàng"}), 400
+    if phuong_thuc not in ("TIENMAT", "CHUYENKHOAN", "KETHOP"):
+        return error("Phương thức thanh toán không hợp lệ")
+
+    # Lấy MaNV từ session (nếu dự án có login); fallback = 1
+    ma_nv = session.get("ma_nv", 1)
 
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
-        cursor.execute("SELECT * FROM DONHANG WHERE MaDon = %s", (ma_don,))
-        order = cursor.fetchone()
+        with conn.cursor() as cur:
 
-        if not order:
-            return jsonify({"success": False, "message": "Không tìm thấy đơn hàng"}), 404
+            # 1. Kiểm tra đơn hàng
+            cur.execute("""
+                SELECT MaDon, TrangThai, TongTien, MaBan, MaNV
+                FROM DONHANG
+                WHERE MaDon = %s
+            """, (ma_don,))
+            don = cur.fetchone()
 
-        # Kiểm tra trạng thái hợp lệ để thanh toán
-        if order["TrangThai"] == "DATHANHTOAN":
-            return jsonify({"success": False, "message": "Đơn hàng này đã được thanh toán"}), 400
+            if not don:
+                return error("Không tìm thấy đơn hàng")
 
-        if order["TrangThai"] == "HUY":
-            return jsonify({"success": False, "message": "Đơn hàng này đã bị hủy"}), 400
+            don_dict = dict(zip([d[0] for d in cur.description], don))
 
-        tong_tien  = float(order["TongTien"])
-        vat        = round(tong_tien * vat_rate, 2)
-        thanh_tien = round(tong_tien + vat - giam_gia, 2)
-        tien_thoi  = round(so_tien_vao - thanh_tien, 2) if phuong_thuc == "TIENMAT" else 0
+            if don_dict["TrangThai"] == "DATHANHTOAN":
+                return error("Đơn hàng đã được thanh toán trước đó")
+            if don_dict["TrangThai"] == "HUY":
+                return error("Đơn hàng đã bị hủy")
 
-        if phuong_thuc == "TIENMAT" and so_tien_vao < thanh_tien:
-            return jsonify({
-                "success": False,
-                "message": f"Số tiền khách đưa ({so_tien_vao:,.0f}đ) không đủ thanh toán ({thanh_tien:,.0f}đ)"
-            }), 400
+            tong_tien  = float(don_dict["TongTien"])
+            thanh_tien = round(tong_tien - giam_gia + vat, 2)
+            if thanh_tien < 0:
+                thanh_tien = 0.0
 
-        now = datetime.datetime.now()
+            # Tính tiền thối (chỉ áp dụng cho tiền mặt)
+            tien_nhan  = tien_mat + tien_chuyen_khoan
+            tien_thoi  = round(tien_nhan - thanh_tien, 2)
+            if tien_thoi < 0:
+                tien_thoi = 0.0
 
-        # 1. Ghi THANHTOAN
-        cursor.execute(
-            """
-            INSERT INTO THANHTOAN
-                (MaDon, MaKM, PhuongThuc, SoTienVao, TienThoi, VAT, NgayThanhToan)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """,
-            (ma_don, ma_km, phuong_thuc, so_tien_vao, tien_thoi, vat, now)
-        )
+            # 2. Ghi bảng THANHTOAN
+            cur.execute("""
+                INSERT INTO THANHTOAN
+                    (MaDon, MaKM, PhuongThuc, TienMat, TienChuyenKhoan,
+                     TienThoi, VAT, NgayThanhToan)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (
+                ma_don,
+                ma_km if ma_km else None,
+                phuong_thuc,
+                tien_mat,
+                tien_chuyen_khoan,
+                tien_thoi,
+                vat
+            ))
 
-        # 2. Cập nhật DONHANG
-        cursor.execute(
-            """
-            UPDATE DONHANG
-            SET TrangThai = 'DATHANHTOAN',
-                GiamGia   = %s,
-                ThanhTien = %s
-            WHERE MaDon = %s
-            """,
-            (giam_gia, thanh_tien, ma_don)
-        )
+            # 3. Cập nhật DONHANG
+            cur.execute("""
+                UPDATE DONHANG
+                SET TrangThai = 'DATHANHTOAN',
+                    GiamGia   = %s,
+                    ThanhTien = %s
+                WHERE MaDon = %s
+            """, (giam_gia, thanh_tien, ma_don))
 
-        # 3. Giải phóng bàn
-        cursor.execute(
-            "UPDATE BAN SET TrangThai = 'TRONG' WHERE MaBan = %s",
-            (order["MaBan"],)
-        )
+            # 4. Trả bàn về trạng thái TRONG
+            cur.execute("""
+                UPDATE BAN SET TrangThai = 'TRONG'
+                WHERE MaBan = %s
+            """, (don_dict["MaBan"],))
 
-        # 4. Trừ tồn kho theo công thức
-        cursor.execute(
-            """
-            SELECT CTDH.MaMon, CTDH.SoLuong,
-                   CT.MaNL, CT.SoLuongSuDung
-            FROM CHITIETDONHANG CTDH
-            JOIN CONGTHUC CT ON CTDH.MaMon = CT.MaMon
-            WHERE CTDH.MaDon = %s
-            """,
-            (ma_don,)
-        )
-        recipe_rows = cursor.fetchall()
-
-        for row in recipe_rows:
-            tru_thuc = float(row["SoLuongSuDung"]) * int(row["SoLuong"])
-            cursor.execute(
-                """
-                UPDATE NGUYENLIEU
-                SET SoLuongTon    = GREATEST(SoLuongTon - %s, 0),
-                    SoLuongTruTam = GREATEST(SoLuongTruTam - %s, 0)
-                WHERE MaNL = %s
-                """,
-                (tru_thuc, tru_thuc, row["MaNL"])
+            # 5. Ghi lịch sử
+            # (Trừ nguyên liệu được xử lý ở module order khi nhân viên thêm món,
+            #  không liên quan đến bước thanh toán.)
+            noi_dung = (
+                f"Thanh toán {phuong_thuc} | "
+                f"Tổng: {tong_tien:,.0f}đ | "
+                f"Giảm: {giam_gia:,.0f}đ | "
+                f"Thành tiền: {thanh_tien:,.0f}đ | "
+                f"Tiền thối: {tien_thoi:,.0f}đ"
             )
-
-        # 5. Đánh dấu voucher hết hạn (nếu có)
-        if ma_km:
-            cursor.execute(
-                "UPDATE KHUYENMAI SET TrangThai = 'HETHAN' WHERE MaKM = %s",
-                (ma_km,)
-            )
+            cur.execute("""
+                INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung)
+                VALUES (%s, %s, 'THANHTOAN', %s)
+            """, (ma_don, ma_nv, noi_dung))
 
         conn.commit()
-
-        return jsonify({
-            "success": True,
-            "message": "Thanh toán thành công",
-            "MaDon": ma_don,
-            "TongTien": tong_tien,
-            "GiamGia": giam_gia,
-            "VAT": vat,
+        return success({
+            "MaDon":     ma_don,
             "ThanhTien": thanh_tien,
-            "TienThoi": tien_thoi,
-            "PhuongThuc": phuong_thuc,
-            "NgayThanhToan": now.strftime("%Y-%m-%d %H:%M:%S")
-        })
+            "TienThoi":  tien_thoi,
+            "TrangThai": "DATHANHTOAN"
+        }, "Thanh toán thành công")
 
     except Exception as e:
         conn.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
-
+        return error(str(e), 500)
     finally:
-        cursor.close()
         conn.close()
 
 
-# =========================
-# XEM HÓA ĐƠN SAU THANH TOÁN (UC02.2)
-# =========================
-@payment_bp.route("/invoice/<int:ma_don>", methods=["GET"])
-def get_invoice(ma_don):
+# ─────────────────────────────────────────────
+# [6] IN HÓA ĐƠN TẠM TÍNH (dữ liệu cho client render)
+# GET /payment/orders/<ma_don>/receipt
+# Trả về toàn bộ thông tin cần thiết để frontend render hóa đơn.
+# ─────────────────────────────────────────────
+
+@payment_bp.route("/orders/<int:ma_don>/receipt", methods=["GET"])
+def get_receipt(ma_don):
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
     try:
-        cursor.execute(
-            """
-            SELECT
-                DH.MaDon,
-                DH.NgayTao,
-                DH.TongTien,
-                DH.GiamGia,
-                DH.ThanhTien,
-                B.TenBan,
-                NV.HoTen           AS TenNhanVien,
-                TT.PhuongThuc,
-                TT.SoTienVao,
-                TT.TienThoi,
-                TT.VAT,
-                TT.NgayThanhToan,
-                KM.MaCode          AS MaVoucher
-            FROM DONHANG DH
-            JOIN BAN B             ON DH.MaBan = B.MaBan
-            LEFT JOIN NHANVIEN NV  ON DH.MaNV  = NV.MaNV
-            LEFT JOIN THANHTOAN TT ON TT.MaDon = DH.MaDon
-            LEFT JOIN KHUYENMAI KM ON TT.MaKM  = KM.MaKM
-            WHERE DH.MaDon = %s
-              AND DH.TrangThai = 'DATHANHTOAN'
-            """,
-            (ma_don,)
-        )
-        order = cursor.fetchone()
+        with conn.cursor() as cur:
+            # Thông tin đơn hàng
+            cur.execute("""
+                SELECT
+                    d.MaDon, d.NgayTao, d.TrangThai,
+                    d.TongTien, d.GiamGia, d.ThanhTien,
+                    b.TenBan,
+                    nv.HoTen AS TenNhanVien
+                FROM DONHANG d
+                JOIN BAN b ON b.MaBan = d.MaBan
+                JOIN NHANVIEN nv ON nv.MaNV = d.MaNV
+                WHERE d.MaDon = %s
+            """, (ma_don,))
+            row = cur.fetchone()
 
-        if not order:
-            return jsonify({
-                "success": False,
-                "message": "Không tìm thấy hóa đơn hoặc đơn chưa thanh toán"
-            }), 404
+            if not row:
+                return error("Không tìm thấy đơn hàng", 404)
 
-        cursor.execute(
-            """
-            SELECT CTDH.MaCTDH, CTDH.MaMon, CTDH.SoLuong,
-                   CTDH.DonGia, CTDH.GhiChu,
-                   MON.TenMon
-            FROM CHITIETDONHANG CTDH
-            JOIN MON ON CTDH.MaMon = MON.MaMon
-            WHERE CTDH.MaDon = %s
-            """,
-            (ma_don,)
-        )
-        items = cursor.fetchall()
+            cols   = [d[0] for d in cur.description]
+            order  = dict(zip(cols, row))
 
-        for key in ("NgayTao", "NgayThanhToan"):
-            if order.get(key) and hasattr(order[key], "strftime"):
-                order[key] = order[key].strftime("%Y-%m-%d %H:%M:%S")
+            # Chi tiết món
+            cur.execute("""
+                SELECT
+                    m.TenMon,
+                    ct.SoLuong,
+                    ct.DonGia,
+                    ct.GhiChu,
+                    ct.TrangThaiMon,
+                    (ct.SoLuong * ct.DonGia) AS ThanhTienMon
+                FROM CHITIETDONHANG ct
+                JOIN MON m ON m.MaMon = ct.MaMon
+                WHERE ct.MaDon = %s
+                ORDER BY ct.MaCTDH
+            """, (ma_don,))
+            items = _rows_to_list(cur, cur.fetchall())
+            order["ChiTiet"] = items
 
-        order["ChiTiet"] = items
-        return jsonify({"success": True, "data": order})
-
+        import json
+        return jsonify({
+            "success": True,
+            "message": "Thành công",
+            "data": json.loads(json.dumps(order, default=_serialize))
+        })
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
+        return error(str(e), 500)
     finally:
-        cursor.close()
-        conn.close()
-
-
-# =========================
-# IN HÓA ĐƠN K80
-# =========================
-@payment_bp.route("/invoice/print/<int:ma_don>", methods=["GET"])
-def print_customer_invoice(ma_don):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    try:
-        cursor.execute(
-            """
-            SELECT
-                DH.MaDon, DH.NgayTao, DH.TongTien, DH.GiamGia, DH.ThanhTien,
-                B.TenBan, NV.HoTen AS TenNhanVien,
-                TT.PhuongThuc, TT.SoTienVao, TT.TienThoi, TT.VAT, TT.NgayThanhToan,
-                KM.MaCode AS MaVoucher
-            FROM DONHANG DH
-            JOIN BAN B             ON DH.MaBan = B.MaBan
-            LEFT JOIN NHANVIEN NV  ON DH.MaNV  = NV.MaNV
-            LEFT JOIN THANHTOAN TT ON TT.MaDon = DH.MaDon
-            LEFT JOIN KHUYENMAI KM ON TT.MaKM  = KM.MaKM
-            WHERE DH.MaDon = %s AND DH.TrangThai = 'DATHANHTOAN'
-            """,
-            (ma_don,)
-        )
-        order = cursor.fetchone()
-
-        if not order:
-            return "Không tìm thấy thông tin hóa đơn hợp lệ để in.", 404
-
-        cursor.execute(
-            """
-            SELECT CTDH.SoLuong, CTDH.DonGia, MON.TenMon
-            FROM CHITIETDONHANG CTDH
-            JOIN MON ON CTDH.MaMon = MON.MaMon
-            WHERE CTDH.MaDon = %s
-            """,
-            (ma_don,)
-        )
-        items = cursor.fetchall()
-
-        ngay_tt = order["NgayThanhToan"].strftime("%d/%m/%Y %H:%M:%S") if order.get("NgayThanhToan") else ""
-
-        items_html = ""
-        for item in items:
-            tt_mon = float(item['SoLuong']) * float(item['DonGia'])
-            items_html += f"""
-            <tr>
-                <td>{item['TenMon']}</td>
-                <td style="text-align:center;">{item['SoLuong']}</td>
-                <td style="text-align:right;">{float(item['DonGia']):,.0f}</td>
-                <td style="text-align:right;">{tt_mon:,.0f}</td>
-            </tr>"""
-
-        vat_amount = float(order['VAT'] or 0)
-        vat_pct    = 10  # hiển thị cố định 10%
-
-        html = f"""<!DOCTYPE html>
-<html lang="vi"><head>
-<meta charset="UTF-8">
-<title>In Hóa Đơn #{order['MaDon']}</title>
-<style>
-  body{{font-family:'Courier New',monospace;font-size:12px;width:80mm;margin:0 auto;padding:5px;color:#000;}}
-  .tc{{text-align:center;}} .tr{{text-align:right;}}
-  h2{{margin:5px 0;font-size:16px;text-transform:uppercase;}}
-  table{{width:100%;border-collapse:collapse;margin-top:10px;}}
-  .items th,.items td{{border-bottom:1px dashed #000;padding:4px 0;font-size:11px;}}
-  .total{{margin-top:10px;font-weight:bold;font-size:12px;line-height:1.8;}}
-  @media print{{body{{width:100%;}} @page{{margin:0;}}}}
-</style></head><body>
-<div class="tc">
-  <h2>☕ COFFEE MANAGEMENT</h2>
-  <p>Địa chỉ: 123 Đường Số 1, TP. HCM<br>SĐT: 0123.456.789</p>
-  <hr style="border-top:1px dashed #000;">
-  <h3>HÓA ĐƠN THANH TOÁN</h3>
-</div>
-<table>
-  <tr><td>Mã HĐ: <strong>#{order['MaDon']}</strong></td><td class="tr">Bàn: {order['TenBan']}</td></tr>
-  <tr><td colspan="2">Ngày: {ngay_tt}</td></tr>
-  <tr><td colspan="2">Thu ngân: {order['TenNhanVien'] or 'Hệ thống'}</td></tr>
-</table>
-<table class="items">
-  <thead>
-    <tr><th style="text-align:left;">Tên món</th><th style="text-align:center;">SL</th><th style="text-align:right;">Đơn giá</th><th style="text-align:right;">T.Tiền</th></tr>
-  </thead>
-  <tbody>{items_html}</tbody>
-</table>
-<div class="total">
-  <table style="width:100%;">
-    <tr><td>Tổng tiền món:</td><td class="tr">{float(order['TongTien']):,.0f}đ</td></tr>
-    <tr><td>Thuế VAT ({vat_pct}%):</td><td class="tr">{vat_amount:,.0f}đ</td></tr>
-    {f"<tr><td>Giảm giá ({order['MaVoucher']}):</td><td class='tr'>-{float(order['GiamGia']):,.0f}đ</td></tr>" if order.get('GiamGia') and float(order['GiamGia']) > 0 else ""}
-    <tr style="font-size:14px;"><td><strong>KHÁCH PHẢI TRẢ:</strong></td><td class="tr"><strong>{float(order['ThanhTien']):,.0f}đ</strong></td></tr>
-    <tr style="font-weight:normal;font-size:11px;"><td>Hình thức: {order['PhuongThuc']}</td><td class="tr">Khách đưa: {float(order['SoTienVao'] or 0):,.0f}đ</td></tr>
-    {f"<tr style='font-weight:normal;font-size:11px;'><td>Tiền thối lại:</td><td class='tr'>{float(order['TienThoi'] or 0):,.0f}đ</td></tr>" if order.get('PhuongThuc') == 'TIENMAT' else ""}
-  </table>
-</div>
-<div class="tc" style="margin-top:15px;font-style:italic;font-size:11px;">
-  <p>Cảm ơn Quý khách - Hẹn gặp lại!</p>
-</div>
-<script>window.onload=function(){{window.print();}}</script>
-</body></html>"""
-
-        response = make_response(html)
-        response.headers["Content-Type"] = "text/html; charset=utf-8"
-        return response
-
-    except Exception as e:
-        return f"Lỗi in hóa đơn: {str(e)}", 500
-
-    finally:
-        cursor.close()
         conn.close()
