@@ -393,3 +393,4 @@ function showLoading(show) {
         document.getElementById("emptyState").style.display = "none";
     }
 }
+

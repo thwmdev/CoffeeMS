@@ -635,4 +635,4 @@ def home():
     if role != "ADMIN":
         return "Không có quyền", 403
 
-    return render_template("report.html")
+    return render_template("inventory.html")
