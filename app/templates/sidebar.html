@@ -1,0 +1,67 @@
+<div class="sidebar">
+    <div class="sidebar-top">
+
+        <!-- LOGO -->
+        <div class="logo">
+            <span class="logo-text">Coffee<span>MS</span></span>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li id="menuModule" class="{{ 'active' if request.path.startswith('/menu') else '' }}"
+                onclick="window.location.href='/menu/'">
+                Menu
+            </li>
+
+            <li id="orderModule" class="{{ 'active' if request.path.startswith('/order') else '' }}"
+                onclick="window.location.href='/order/'">
+                Gọi món
+            </li>
+
+            <li id="inventoryModule" class="{{ 'active' if request.path.startswith('/inventory') else '' }}"
+                onclick="window.location.href='/inventory/'">
+                Kho nguyên liệu
+            </li>
+
+            <li id="recipeModule" class="{{ 'active' if request.path.startswith('/recipe') else '' }}"
+                onclick="window.location.href='/recipe/'">
+                Công thức
+            </li>
+
+            <li id="paymentModule" class="{{ 'active' if request.path.startswith('/payment') else '' }}"
+                onclick="window.location.href='/payment/'">
+                Thanh toán
+            </li>
+
+            <li id="reportModule" class="{{ 'active' if request.path.startswith('/report') else '' }}"
+                onclick="window.location.href='/report/'">
+                Báo cáo
+            </li>
+
+            <li id="accountModule" class="{{ 'active' if request.path.startswith('/account') else '' }}"
+                onclick="window.location.href='/account/'">
+                Tài khoản
+            </li>
+        </ul>
+
+    </div>
+
+    <div class="sidebar-account">
+        <div class="sidebar-divider"></div>
+        <p class="account-label">Tài khoản</p>
+
+        <div class="account-card">
+            <div class="avatar" id="sidebarAvatar">A</div>
+            <div class="account-info">
+                <strong id="sidebarUsername"></strong>
+                <span id="sidebarRole"></span>
+            </div>
+        </div>
+
+        <button class="logout-btn" type="button" onclick="logout()">
+            Đăng xuất
+        </button>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/role.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>

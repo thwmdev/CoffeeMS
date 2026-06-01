@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/default.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         .payment-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
 
@@ -82,18 +82,7 @@
 
 <div class="wrapper">
 
-    <div class="sidebar">
-        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
-        <ul>
-            <li id="menuModule"      onclick="location.href='/menu'">Menu</li>
-            <li id="inventoryModule" onclick="location.href='/inventory'">Kho</li>
-            <li id="recipeModule"    onclick="location.href='/recipe'">Công thức</li>
-            <li id="reportModule"    onclick="location.href='/report'">Báo cáo</li>
-            <li id="paymentModule"   onclick="location.href='/payment'">Thanh toán</li>
-            <li id="accountModule"   onclick="location.href='/account'">Tài khoản</li>
-            <li onclick="logout()">Đăng xuất</li>
-        </ul>
-    </div>
+    {% include 'sidebar.html' %}
 
     <div class="main-content">
 

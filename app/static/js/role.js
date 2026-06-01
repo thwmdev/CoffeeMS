@@ -38,13 +38,18 @@ function login() {
     .then(data => {
         const userRole = data.role ? data.role.toUpperCase() : "";
 
+        localStorage.setItem("user", JSON.stringify({
+            username: username,
+            role: userRole
+        }));
+
         document.cookie = `role=${userRole}; path=/; max-age=86400`;
         document.cookie = `token=${data.token}; path=/; max-age=86400`;
 
         if (userRole === "NHANVIEN") {
-            window.location.href = "/menu";
+            window.location.href = "/order";
         } else if (userRole === "ADMIN") {
-            window.location.href = "/inventory";
+            window.location.href = "/menu";
         }
     })
     .catch(err => {
@@ -58,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const role = rawRole ? rawRole.toUpperCase() : "";
 
     // Chỉ ADMIN thấy: Kho, Công thức, Báo cáo
-    const adminModules = ["inventoryModule", "recipeModule", "reportModule"];
+    const adminModules = ["inventoryModule", "recipeModule", "reportModule", 'accountModule'];
 
     // Cả NHANVIEN và ADMIN đều thấy: Thanh toán, Gọi Món
     const staffModules  = ["paymentModule", "orderModule"];
@@ -74,9 +79,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
     } else if (role === "ADMIN") {
-        adminModules.concat(staffModules).forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = "block";
+        adminModules.forEach(id => {
+            document.getElementById(id)?.style.setProperty("display", "block");
+        });
+
+        staffModules.forEach(id => {
+            document.getElementById(id)?.style.setProperty("display", "none");
         });
 
     } else {
@@ -86,12 +94,17 @@ document.addEventListener("DOMContentLoaded", () => {
             if (el) el.style.display = "none";
         });
     }
+
+    document.querySelector(".sidebar-menu").style.visibility = "visible";
 });
 
 function logout() {
     if (confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
         document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
         document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+        
+        localStorage.removeItem("user");
+        
         window.location.href = "/";
     }
 }

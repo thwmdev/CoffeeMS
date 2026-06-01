@@ -34,53 +34,8 @@
 
 <div class="wrapper">
 
-   <div class="sidebar">
+    {% include 'sidebar.html' %}
 
-    <h2 class="logo">
-        Quản Lý <br> Quán Cafe
-    </h2>
-
-    <ul>
-
-        <li id="menuModule"
-            class="active"
-            onclick="location.href='/menu'">
-            Menu
-        </li>
-
-        <!-- ★ MỤC MỚI: Gọi Món → /order/ -->
-        <li id="orderModule"
-            onclick="location.href='/order/'">
-            Gọi Món
-        </li>
-
-        <li id="inventoryModule"
-            onclick="location.href='/inventory'">
-            Kho
-        </li>
-
-        <li id="recipeModule"
-            onclick="location.href='/recipe'">
-            Công thức
-        </li>
-
-        <li id="reportModule"
-            onclick="location.href='/report'">
-            Báo cáo
-        </li>
-
-        <li id="paymentModule"
-            onclick="location.href='/payment'">
-            Thanh toán
-        </li>
-
-        <li onclick="logout()">
-            Đăng xuất
-        </li>
-
-    </ul>
-
-</div>
     <!-- =========================
          MAIN CONTENT
     ========================== -->

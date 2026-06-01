@@ -204,18 +204,7 @@
 
 <div class="wrapper">
 
-    <div class="sidebar">
-        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
-        <ul>
-            <li id="menuModule" onclick="location.href='/menu'">Menu</li>
-            <li id="inventoryModule" onclick="location.href='/inventory'">Kho</li>
-            <li id="recipeModule" onclick="location.href='/recipe'">Công thức</li>
-            <li id="reportModule" class="active" onclick="location.href='/report'">Báo cáo</li>
-            <li id="paymentModule" onclick="location.href='/payment'">Thanh toán</li>
-            <li id="accountModule" onclick="location.href='/account'">Tài khoản</li>
-            <li onclick="logout()">Đăng xuất</li>
-        </ul>
-    </div>
+    {% include 'sidebar.html'%}
 
     <div class="main-content">
         <div class="page-title">

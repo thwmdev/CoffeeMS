@@ -31,69 +31,212 @@ body{
    SIDEBAR
 ========================= */
 
-.sidebar{
-
+.sidebar {
     width:250px;
-
     min-height:100vh;
-
-    background:#ffffff;
-
-    padding:30px 20px;
-
+    background:#fff;
+    padding:28px 20px;
     position:fixed;
-
     left:0;
     top:0;
-
-    box-shadow:0 8px 25px rgba(0,0,0,0.06);
-
     z-index:100;
+    box-shadow:2px 0 20px rgba(0,0,0,0.06);
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    transition:width 0.3s;
 }
 
-.logo{
+.sidebar-top,
+.sidebar-account {
+    width:100%;
+}
 
+.logo {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:0 0 32px 6px;
+}
+
+.logo-text {
+    font-size:36px;
+    font-weight:800;
     color:#ff9800;
+    line-height:1;
+    letter-spacing:-0.5px;
+}
 
-    font-size:42px;
+.logo-text span {
+    color:#111827;
+}
 
+.nav-label {
+    font-size:10px;
     font-weight:700;
-
-    line-height:1.1;
-
-    margin-bottom:50px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:#d1d5db;
+    padding:0 8px;
+    margin-bottom:8px;
 }
 
-.sidebar ul{
+.sidebar-menu {
+    visibility: hidden;
+}
+
+.sidebar-menu,
+.sidebar ul {
     list-style:none;
+    padding:0;
+    margin:0;
 }
 
-.sidebar ul li{
-
-    padding:15px 18px;
-
-    margin-bottom:12px;
-
-    border-radius:14px;
-
+.sidebar-menu li {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    padding:12px 16px;
+    margin-bottom:4px;
+    border-radius:12px;
     cursor:pointer;
-
-    transition:0.3s;
-
-    font-size:17px;
-
+    font-size:15px;
     font-weight:500;
+    color:#4b5563;
+    transition:background 0.2s,color 0.2s;
+    user-select:none;
 }
 
-.sidebar ul li:hover,
-.sidebar ul .active{
+.sidebar-menu li:hover {
+    background:#fff7ec;
+    color:#ff9800;
+}
 
+.sidebar-menu li.active {
     background:#ff9800;
-
     color:#fff;
+    font-weight:600;
+    box-shadow:0 4px 14px rgba(255,152,0,0.30);
 }
 
+.sidebar-divider {
+    height:1px;
+    background:#f1f5f9;
+    margin:16px 0;
+}
 
+.account-label {
+    margin:0 0 10px 4px;
+    font-size:10px;
+    font-weight:700;
+    color:#d1d5db;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+}
+
+.account-card {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    border:1.5px solid #f1f5f9;
+    border-radius:14px;
+    background:#f8fafc;
+    margin-bottom:12px;
+    transition:border-color 0.2s;
+}
+
+.account-card:hover {
+    border-color:#fde68a;
+}
+
+.avatar {
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#ff9800,#f59e0b);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:700;
+    flex-shrink:0;
+}
+
+.account-info {
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+}
+
+.account-info strong {
+    color:#111827;
+    font-size:14px;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.account-info span {
+    color:#9ca3af;
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+}
+
+.logout-btn {
+    width:100%;
+    border:none;
+    border-radius:12px;
+    background:#f1f5f9;
+    color:#374151;
+    padding:11px 16px;
+    font-size:14px;
+    font-weight:600;
+    font-family:'Poppins',sans-serif;
+    cursor:pointer;
+    transition:background 0.2s,color 0.2s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+}
+
+.logout-btn:hover {
+    background:#fee2e2;
+    color:#dc2626;
+}
+
+@media (max-width:992px) {
+    .sidebar {
+        position:relative;
+        width:100%;
+        min-height:auto;
+        flex-direction:row;
+        flex-wrap:wrap;
+        gap:16px;
+        padding:16px 20px;
+    }
+
+    .sidebar-menu {
+        display:flex;
+        flex-wrap:wrap;
+        gap:6px;
+    }
+
+    .sidebar-menu li {
+        margin-bottom:0;
+        padding:10px 16px;
+    }
+
+    .sidebar-account {
+        min-width:280px;
+    }
+}
 /* =========================
    MAIN CONTENT
 ========================= */
@@ -121,7 +264,7 @@ body{
 
 .page-title h1{
 
-    font-size:42px;
+    font-size:30px;
 
     font-weight:700;
 
