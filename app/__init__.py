@@ -20,7 +20,7 @@ def create_app():
     from app.routers.order_manage import order_manage_bp
     from app.routers.report import report_bp
     from app.routers.payment import payment_bp
-
+    from app.routers.account import account_bp
     # register blueprint
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(menu_bp, url_prefix="/menu")
@@ -30,6 +30,7 @@ def create_app():
     app.register_blueprint(order_manage_bp,  url_prefix="/order")
     app.register_blueprint(report_bp, url_prefix="/report")
     app.register_blueprint(payment_bp, url_prefix="/payment")
+    app.register_blueprint(account_bp)
 
     print(app.url_map)
 
