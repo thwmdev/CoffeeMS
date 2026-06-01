@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Quản lý tài khoản</title>
+
+   
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/default.css') }}">
+
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <!-- SIDEBAR -->
+ <div class="sidebar">
+
+    <h2 class="logo">
+        Quản Lý <br> Quán Cafe
+    </h2>
+  <ul>
+        <li id="menuModule"
+            onclick="location.href='/menu'">
+            Menu
+        </li>
+
+        <li id="inventoryModule"
+            onclick="location.href='/inventory'">
+            Kho
+        </li>
+
+        <li id="recipeModule"
+            onclick="location.href='/recipe'">
+            Công thức
+        </li>
+
+        <li id="reportModule"
+            onclick="location.href='/report'">
+            Báo cáo
+        </li>
+
+        <li id="paymentModule"
+            onclick="location.href='/payment'">
+            Thanh toán
+        </li>
+        <li id="accountModule"
+            onclick="location.href='/account'">
+            Tài khoản
+        </li>
+        <li onclick="logout()">
+            Đăng xuất
+        </li>
+
+    </ul>
+
+</div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+
+        <div class="page-title">
+            <h1>Quản lý tài khoản nhân viên</h1>
+        </div>
+
+        <div class="form-box">
+
+            <h3>Tạo tài khoản</h3>
+
+            <div class="form-grid">
+
+                <input id="HoTen"
+                       class="form-control"
+                       placeholder="Họ tên">
+
+                <input id="SDT"
+                       class="form-control"
+                       placeholder="Số điện thoại">
+
+                <input id="Email"
+                       class="form-control"
+                       placeholder="Email">
+
+                <input id="TenDangNhap"
+                       class="form-control"
+                       placeholder="Tên đăng nhập">
+
+                <input id="MatKhau"
+                       class="form-control"
+                       type="password"
+                       placeholder="Mật khẩu">
+
+                <select id="VaiTro"
+                        class="form-select">
+
+                    <option value="NhanVien">
+                        Nhân viên
+                    </option>
+
+                    <option value="QuanLy">
+                        Quản lý
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="action-buttons">
+
+                <button class="btn btn-success"
+                        onclick="createAccount()">
+                    Tạo tài khoản
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="table-box">
+
+            <table class="table table-hover">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>SĐT</th>
+                        <th>Email</th>
+                        <th>Username</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="accountTable">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/account.js') }}"></script>
+
+</body>
+</html>
