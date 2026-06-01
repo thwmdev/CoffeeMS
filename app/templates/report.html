@@ -1,32 +1,38 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo cáo Doanh thu – Coffee Management</title>
 
-    <!-- BOOTSTRAP -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- CSS CHUNG -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/default.css') }}">
-
-    <!-- CHART.JS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-
-    <!-- FONT -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* ===== REPORT-SPECIFIC ===== */
+        :root {
+            --brand: #ff9800;
+            --brand-2: #0d6efd;
+            --text-muted: #6b7280;
+            --card-radius: 22px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f7f8fb;
+        }
+
         .date-filter {
             display: flex;
             gap: 12px;
             align-items: center;
             flex-wrap: wrap;
-            margin-bottom: 28px;
+            margin-bottom: 18px;
         }
 
         .date-filter input[type="date"] {
@@ -43,6 +49,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            margin-bottom: 22px;
         }
 
         .kpi-grid {
@@ -54,25 +61,26 @@
 
         .kpi-card {
             background: #fff;
-            border-radius: 22px;
+            border-radius: var(--card-radius);
             padding: 28px 22px;
             box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-            transition: 0.25s;
+            transition: 0.25s ease;
+            border: 1px solid rgba(0,0,0,0.03);
         }
 
         .kpi-card:hover { transform: translateY(-3px); }
 
         .kpi-card .kpi-label {
             font-size: 14px;
-            color: #6b7280;
+            color: var(--text-muted);
             font-weight: 500;
             margin-bottom: 8px;
         }
 
         .kpi-card .kpi-value {
-            font-size: 30px;
+            font-size: clamp(20px, 2vw, 30px);
             font-weight: 700;
-            color: #ff9800;
+            color: var(--brand);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -89,11 +97,12 @@
             .chart-row { grid-template-columns: 1fr; }
         }
 
-        .chart-box {
+        .chart-box, .table-box {
             background: #fff;
-            border-radius: 22px;
+            border-radius: var(--card-radius);
             padding: 24px;
             box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
         }
 
         .chart-box h3 {
@@ -128,12 +137,13 @@
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.2s ease;
             font-family: 'Poppins', sans-serif;
         }
 
-        .tab-nav button.active, .tab-nav button:hover {
-            background: #ff9800;
+        .tab-nav button.active,
+        .tab-nav button:hover {
+            background: var(--brand);
             color: #fff;
         }
 
@@ -148,64 +158,69 @@
         }
 
         .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+
+        .table-responsive { border-radius: 18px; }
+
+        .table thead th {
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .table tbody td {
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        .badge-soft {
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-weight: 600;
+        }
+
+        #ptLegend > div {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            flex: 0 0 12px;
+        }
+
+        .loading-wrap {
+            text-align: center;
+            padding: 40px 0;
+            color: #9ca3af;
+        }
     </style>
 </head>
-
 <body>
 
 <div class="wrapper">
 
-    <!-- SIDEBAR -->
- <div class="sidebar">
+    <div class="sidebar">
+        <h2 class="logo">Quản Lý <br> Quán Cafe</h2>
+        <ul>
+            <li id="menuModule" onclick="location.href='/menu'">Menu</li>
+            <li id="inventoryModule" onclick="location.href='/inventory'">Kho</li>
+            <li id="recipeModule" onclick="location.href='/recipe'">Công thức</li>
+            <li id="reportModule" class="active" onclick="location.href='/report'">Báo cáo</li>
+            <li id="paymentModule" onclick="location.href='/payment'">Thanh toán</li>
+            <li onclick="logout()">Đăng xuất</li>
+        </ul>
+    </div>
 
-    <h2 class="logo">
-        Quản Lý <br> Quán Cafe
-    </h2>
-
-    <ul>
-        <li id="menuModule"
-            onclick="location.href='/menu'">
-            Menu
-        </li>
-
-        <li id="inventoryModule"
-            onclick="location.href='/inventory'">
-            Kho
-        </li>
-
-        <li id="recipeModule"
-            onclick="location.href='/recipe'">
-            Công thức
-        </li>
-
-        <li id="reportModule"
-            class="active"
-            onclick="location.href='/report'">
-            Báo cáo
-        </li>
-
-        <!-- NHÂN VIÊN -->
-        <li id="paymentModule"
-            onclick="location.href='/payment'">
-            Thanh toán
-        </li>
-
-        <li onclick="logout()">
-            Đăng xuất
-        </li>
-
-    </ul>
-
-</div>
-    <!-- MAIN -->
     <div class="main-content">
-
-        <!-- TITLE -->
         <div class="page-title">
             <h1>Báo cáo Doanh thu & Hiệu suất</h1>
         </div>
 
-        <!-- DATE FILTER (UC06 – Bước 1) -->
         <div class="date-filter">
             <label style="font-weight:600;font-size:15px;">Từ ngày:</label>
             <input type="date" id="tuNgay">
@@ -214,36 +229,30 @@
             <input type="date" id="denNgay">
 
             <button class="btn btn-warning" onclick="loadReport()">📊 Xem báo cáo</button>
-
-            <!-- Xuất file (UC06.1) -->
             <button class="btn btn-outline-dark" onclick="exportExcel()">⬇️ Excel / CSV</button>
             <button class="btn btn-outline-danger" onclick="exportPDF()">🖨️ PDF</button>
         </div>
 
-        <!-- SHORTCUT DATES -->
-        <div class="quick-btns" style="margin-bottom:24px;">
+        <div class="quick-btns">
             <button class="btn btn-outline-secondary btn-sm" onclick="setQuickDate('today')">Hôm nay</button>
             <button class="btn btn-outline-secondary btn-sm" onclick="setQuickDate('week')">7 ngày qua</button>
             <button class="btn btn-outline-secondary btn-sm" onclick="setQuickDate('month')">Tháng này</button>
             <button class="btn btn-outline-secondary btn-sm" onclick="setQuickDate('lastmonth')">Tháng trước</button>
         </div>
 
-        <!-- LOADING STATE -->
-        <div id="loadingState" style="display:none;text-align:center;padding:40px;color:#9ca3af;">
-            <div class="spinner-border text-warning" style="width:2rem;height:2rem;"></div>
-            <div style="margin-top:10px;">Đang tải dữ liệu...</div>
+        <div id="loadingState" style="display:none;">
+            <div class="loading-wrap">
+                <div class="spinner-border text-warning" style="width:2rem;height:2rem;"></div>
+                <div style="margin-top:10px;">Đang tải dữ liệu...</div>
+            </div>
         </div>
 
-        <!-- EMPTY STATE -->
         <div id="emptyState" style="display:none;" class="empty-state">
             <div class="emoji">📭</div>
             <div>Chưa có dữ liệu trong khoảng thời gian được chọn</div>
         </div>
 
-        <!-- DASHBOARD (UC06 – Bước 2) -->
         <div id="dashboard" style="display:none;">
-
-            <!-- KPI CARDS -->
             <div class="kpi-grid">
                 <div class="kpi-card">
                     <div class="kpi-label">💰 Tổng doanh thu</div>
@@ -267,74 +276,583 @@
                 </div>
             </div>
 
-            <!-- BIỂU ĐỒ -->
             <div class="chart-row">
-                <!-- Line: Doanh thu theo ngày -->
                 <div class="chart-box">
                     <h3>📈 Doanh thu theo ngày</h3>
-                    <canvas id="chartRevenue" height="100"></canvas>
+                    <canvas id="chartRevenue" height="110"></canvas>
                 </div>
 
-                <!-- Doughnut: Phương thức thanh toán -->
                 <div class="chart-box">
                     <h3>💳 Phương thức thanh toán</h3>
                     <canvas id="chartPayment" height="180"></canvas>
-                    <div id="ptLegend" style="margin-top:14px;font-size:13px;"></div>
+                    <div id="ptLegend" style="margin-top:14px;"></div>
                 </div>
             </div>
 
-            <!-- TABS: Top món / Lịch sử / Bất thường -->
             <div class="tab-nav">
-                <button class="active" onclick="switchTab('top')">🏆 Top món bán chạy</button>
-                <button onclick="switchTab('history')">📝 Lịch sử chỉnh sửa</button>
-                <button onclick="switchTab('anomaly')" id="tabAnomalyBtn">⚠️ Đơn bất thường</button>
+                <button class="active" onclick="switchTab('top', this)">🏆 Top món bán chạy</button>
+                <button onclick="switchTab('history', this)">📝 Lịch sử chỉnh sửa</button>
+                <button onclick="switchTab('anomaly', this)" id="tabAnomalyBtn">⚠️ Đơn bất thường</button>
             </div>
 
-            <!-- TAB: Top món (UC06 – Bước 3) -->
-            <div class="tab-content active table-box" id="tabTop">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Tên món</th>
-                            <th>Danh mục</th>
-                            <th>Số lượng bán</th>
-                            <th>Doanh thu</th>
-                        </tr>
-                    </thead>
-                    <tbody id="topItemsTable"></tbody>
-                </table>
-                <canvas id="chartTopItems" height="80" style="margin-top:20px;"></canvas>
+            <div class="tab-content active" id="tabTop">
+                <div class="table-box">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tên món</th>
+                                    <th>Danh mục</th>
+                                    <th>Số lượng bán</th>
+                                    <th>Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topItemsTable"></tbody>
+                        </table>
+                    </div>
+                    <canvas id="chartTopItems" height="90" style="margin-top:20px;"></canvas>
+                </div>
             </div>
 
-            <!-- TAB: Lịch sử (UC06 – Bước 4) -->
-            <div class="tab-content table-box" id="tabHistory">
-                <div id="historyTable">
-                    <div class="empty-state">
-                        <div class="emoji">📂</div>
-                        <div>Nhấn "Xem báo cáo" để tải lịch sử</div>
+            <div class="tab-content" id="tabHistory">
+                <div class="table-box">
+                    <div id="historyTable">
+                        <div class="empty-state">
+                            <div class="emoji">📂</div>
+                            <div>Nhấn "Xem báo cáo" để tải lịch sử</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB: Bất thường (UC06 – TT03) -->
-            <div class="tab-content table-box" id="tabAnomaly">
-                <div id="anomalyContent">
-                    <div class="empty-state">
-                        <div class="emoji">✅</div>
-                        <div>Không phát hiện đơn hàng bất thường</div>
+            <div class="tab-content" id="tabAnomaly">
+                <div class="table-box">
+                    <div id="anomalyContent">
+                        <div class="empty-state">
+                            <div class="emoji">✅</div>
+                            <div>Không phát hiện đơn hàng bất thường</div>
+                        </div>
                     </div>
                 </div>
             </div>
-
-        </div><!-- /dashboard -->
-
-    </div><!-- /main-content -->
-</div><!-- /wrapper -->
-
+        </div>
+    </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/role.js') }}"></script>
-<script src="{{ url_for('static', filename='js/report.js') }}"></script>
+<script>
+(() => {
+    const API_BASE = '/report';
+
+    let chartRevenue = null;
+    let chartPayment = null;
+    let chartTopItems = null;
+
+    function byId(id) {
+        return document.getElementById(id);
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function toNumber(value, fallback = 0) {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function fmtMoney(value) {
+        if (value === null || value === undefined || value === '') return '–';
+        return Number(value).toLocaleString('vi-VN') + 'đ';
+    }
+
+    function fmtInt(value) {
+        if (value === null || value === undefined || value === '') return '–';
+        return Number(value).toLocaleString('vi-VN');
+    }
+
+    function formatDate(d) {
+        const date = new Date(d);
+        if (isNaN(date)) return d ? String(d) : '—';
+        return date.toLocaleString('vi-VN');
+    }
+
+    function showLoading(show) {
+        const loading = byId('loadingState');
+        const dashboard = byId('dashboard');
+        const empty = byId('emptyState');
+        if (!loading || !dashboard || !empty) return;
+        loading.style.display = show ? 'block' : 'none';
+        if (show) {
+            dashboard.style.display = 'none';
+            empty.style.display = 'none';
+        }
+        document.querySelectorAll('.date-filter button').forEach(btn => btn.disabled = show);
+    }
+
+    async function fetchJson(url, options = {}) {
+        const res = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
+            },
+            ...options
+        });
+
+        let payload = null;
+        try {
+            payload = await res.json();
+        } catch {
+            throw new Error('Máy chủ trả về dữ liệu không hợp lệ.');
+        }
+
+        if (!res.ok || payload?.success === false) {
+            throw new Error(payload?.message || `Lỗi HTTP ${res.status}`);
+        }
+
+        return payload;
+    }
+
+    function normalizeSummary(raw) {
+        const s = raw || {};
+        return {
+            TongDoanhThu: toNumber(s.TongDoanhThu ?? s.tong_doanh_thu ?? s.totalRevenue),
+            TongDon: toNumber(s.TongDon ?? s.tong_don ?? s.totalOrders),
+            GiaTriTBDon: toNumber(s.GiaTriTBDon ?? s.gia_tri_tb_don ?? s.avgOrderValue),
+            TongGiamGia: toNumber(s.TongGiamGia ?? s.tong_giam_gia ?? s.totalDiscount),
+            TongMonBan: toNumber(s.TongMonBan ?? s.tong_mon_ban ?? s.totalItemsSold)
+        };
+    }
+
+    function normalizeRevenueRows(rows) {
+        return Array.isArray(rows) ? rows.map(r => ({
+            Ngay: r.Ngay ?? r.ngay ?? r.date ?? '',
+            DoanhThu: toNumber(r.DoanhThu ?? r.doanh_thu ?? r.revenue)
+        })) : [];
+    }
+
+    function normalizePaymentRows(rows) {
+        return Array.isArray(rows) ? rows.map(r => ({
+            PhuongThuc: r.PhuongThuc ?? r.phuong_thuc ?? r.method ?? 'Khác',
+            TongTien: toNumber(r.TongTien ?? r.tong_tien ?? r.total)
+        })) : [];
+    }
+
+    function normalizeTopItems(rows) {
+        return Array.isArray(rows) ? rows.map(r => ({
+            TenMon: r.TenMon ?? r.ten_mon ?? '',
+            TenDanhMuc: r.TenDanhMuc ?? r.ten_danh_muc ?? r.TenDM ?? '',
+            TongSL: toNumber(r.TongSL ?? r.so_luong ?? r.quantity),
+            DoanhThu: toNumber(r.DoanhThu ?? r.doanh_thu ?? r.revenue)
+        })) : [];
+    }
+
+    function normalizeHistory(rows) {
+        return Array.isArray(rows) ? rows.map(r => ({
+            MaDon: r.MaDon ?? r.ma_don ?? '',
+            TenNhanVien: r.TenNhanVien ?? r.ten_nhan_vien ?? '',
+            HanhDong: r.HanhDong ?? r.hanh_dong ?? '',
+            NoiDung: r.NoiDung ?? r.noi_dung ?? '',
+            ThoiGian: r.ThoiGian ?? r.thoi_gian ?? ''
+        })) : [];
+    }
+
+    function normalizeAnomalies(rows) {
+        return Array.isArray(rows) ? rows.map(r => ({
+            MaDon: r.MaDon ?? r.ma_don ?? '',
+            TenNhanVien: r.TenNhanVien ?? r.ten_nhan_vien ?? '',
+            SoLanChinhSua: toNumber(r.SoLanChinhSua ?? r.so_lan_chinh_sua ?? r.editCount),
+            LanDau: r.LanDau ?? r.lan_dau ?? '',
+            LanCuoi: r.LanCuoi ?? r.lan_cuoi ?? ''
+        })) : [];
+    }
+
+    function setQuickDate(preset) {
+        const today = new Date();
+        let from = new Date(today);
+        let to = new Date(today);
+
+        if (preset === 'today') {
+            // giữ nguyên
+        } else if (preset === 'week') {
+            from.setDate(today.getDate() - 6);
+        } else if (preset === 'month') {
+            from = new Date(today.getFullYear(), today.getMonth(), 1);
+        } else if (preset === 'lastmonth') {
+            from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            to = new Date(today.getFullYear(), today.getMonth(), 0);
+        }
+
+        byId('tuNgay').value = formatDateInput(from);
+        byId('denNgay').value = formatDateInput(to);
+        loadReport();
+    }
+
+    function formatDateInput(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    async function loadReport() {
+        const tuNgay = byId('tuNgay').value;
+        const denNgay = byId('denNgay').value;
+
+        if (!tuNgay || !denNgay) {
+            alert('Vui lòng chọn khoảng thời gian');
+            return;
+        }
+
+        if (tuNgay > denNgay) {
+            alert('Khoảng thời gian không hợp lệ: ngày bắt đầu phải ≤ ngày kết thúc');
+            return;
+        }
+
+        showLoading(true);
+
+        try {
+            const [revRes, histRes] = await Promise.all([
+                fetchJson(`${API_BASE}/revenue?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`),
+                fetchJson(`${API_BASE}/history?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`)
+            ]);
+
+            const summary = normalizeSummary(revRes.TomTat ?? revRes.tom_tat ?? revRes.summary);
+            const byDay = normalizeRevenueRows(revRes.TheoNgay ?? revRes.theo_ngay ?? revRes.by_day);
+            const byPT = normalizePaymentRows(revRes.PhuongThucTT ?? revRes.phuong_thuc_tt ?? revRes.by_payment);
+            const topItems = normalizeTopItems(revRes.TopMon ?? revRes.top_mon ?? revRes.top_items);
+            const history = normalizeHistory(histRes.LichSu ?? histRes.lich_su ?? histRes.history);
+            const anomalies = normalizeAnomalies(histRes.BatThuong ?? histRes.bat_thuong ?? histRes.anomalies);
+
+            if (revRes.empty || (!summary.TongDon && !byDay.length && !topItems.length)) {
+                byId('emptyState').style.display = 'block';
+                byId('dashboard').style.display = 'none';
+                return;
+            }
+
+            byId('emptyState').style.display = 'none';
+            byId('dashboard').style.display = 'block';
+
+            renderKPIs(summary);
+            renderRevenueChart(byDay);
+            renderPaymentChart(byPT);
+            renderTopItems(topItems);
+            renderHistory(history);
+            renderAnomalies(anomalies);
+        } catch (err) {
+            console.error(err);
+            alert('Lỗi kết nối máy chủ');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function renderKPIs(data) {
+        byId('kpiDoanhThu').innerText = fmtMoney(data.TongDoanhThu);
+        byId('kpiTongDon').innerText = fmtInt(data.TongDon);
+        byId('kpiTBDon').innerText = fmtMoney(data.GiaTriTBDon);
+        byId('kpiGiam').innerText = fmtMoney(data.TongGiamGia);
+        byId('kpiMonBan').innerText = fmtInt(data.TongMonBan);
+    }
+
+    function destroyChart(chart) {
+        if (chart) chart.destroy();
+        return null;
+    }
+
+    function renderRevenueChart(byDay) {
+        const labels = byDay.map(r => r.Ngay);
+        const values = byDay.map(r => r.DoanhThu);
+
+        chartRevenue = destroyChart(chartRevenue);
+
+        const ctx = byId('chartRevenue').getContext('2d');
+        chartRevenue = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Doanh thu',
+                    data: values,
+                    borderColor: '#ff9800',
+                    backgroundColor: 'rgba(255,152,0,0.12)',
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    tension: 0.35,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${fmtMoney(ctx.raw)}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: v => (v / 1000000).toFixed(1) + 'tr'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderPaymentChart(byPT) {
+        const labels = byPT.map(r => r.PhuongThuc || 'Khác');
+        const values = byPT.map(r => r.TongTien);
+        const colors = ['#ff9800', '#3b82f6', '#22c55e', '#a855f7', '#ef4444'];
+        const total = values.reduce((a, b) => a + b, 0);
+
+        chartPayment = destroyChart(chartPayment);
+
+        const ctx = byId('chartPayment').getContext('2d');
+        chartPayment = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${fmtMoney(ctx.raw)}`
+                        }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+
+        const legend = byId('ptLegend');
+        if (!legend) return;
+
+        if (!labels.length) {
+            legend.innerHTML = '<div class="text-muted small">Không có dữ liệu</div>';
+            return;
+        }
+
+        legend.innerHTML = labels.map((l, i) => {
+            const pct = total ? ((values[i] / total) * 100).toFixed(1) : '0.0';
+            return `
+                <div>
+                    <span class="legend-dot" style="background:${colors[i] || '#999'}"></span>
+                    <span>${escapeHtml(l)}: <strong>${fmtMoney(values[i])}</strong> (${pct}%)</span>
+                </div>`;
+        }).join('');
+    }
+
+    function renderTopItems(items) {
+        const tbody = byId('topItemsTable');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (!items.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">Không có dữ liệu</td>
+                </tr>`;
+        } else {
+            tbody.innerHTML = items.map((item, i) => `
+                <tr>
+                    <td><strong>${i + 1}</strong></td>
+                    <td>${escapeHtml(item.TenMon)}</td>
+                    <td><span class="badge bg-warning text-dark badge-soft">${escapeHtml(item.TenDanhMuc || '–')}</span></td>
+                    <td>${fmtInt(item.TongSL)}</td>
+                    <td>${fmtMoney(item.DoanhThu)}</td>
+                </tr>`).join('');
+        }
+
+        chartTopItems = destroyChart(chartTopItems);
+        const ctx = byId('chartTopItems').getContext('2d');
+        chartTopItems = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: items.map(r => r.TenMon),
+                datasets: [{
+                    label: 'Số lượng bán',
+                    data: items.map(r => r.TongSL),
+                    backgroundColor: 'rgba(255,152,0,0.7)',
+                    borderColor: '#ff9800',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.raw} món`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderHistory(history) {
+        const box = byId('historyTable');
+        if (!box) return;
+
+        if (!history.length) {
+            box.innerHTML = `
+                <div class="empty-state">
+                    <div class="emoji">📂</div>
+                    <div>Không có lịch sử chỉnh sửa trong khoảng thời gian này</div>
+                </div>`;
+            return;
+        }
+
+        const rows = history.map(r => `
+            <tr>
+                <td>${escapeHtml(r.MaDon)}</td>
+                <td>${escapeHtml(r.TenNhanVien || '–')}</td>
+                <td><span class="badge bg-secondary badge-soft">${escapeHtml(r.HanhDong || '–')}</span></td>
+                <td style="font-size:13px;">${escapeHtml(r.NoiDung || '')}</td>
+                <td style="font-size:13px; white-space:nowrap;">${escapeHtml(formatDate(r.ThoiGian))}</td>
+            </tr>`).join('');
+
+        box.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Nhân viên</th>
+                            <th>Hành động</th>
+                            <th>Nội dung</th>
+                            <th>Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+    }
+
+    function renderAnomalies(anomalies) {
+        const btn = byId('tabAnomalyBtn');
+        const box = byId('anomalyContent');
+        if (!btn || !box) return;
+
+        if (!anomalies.length) {
+            btn.textContent = '⚠️ Đơn bất thường';
+            btn.style.background = '';
+            btn.style.color = '';
+            box.innerHTML = `
+                <div class="empty-state">
+                    <div class="emoji">✅</div>
+                    <div>Không phát hiện đơn hàng bất thường trong kỳ này</div>
+                </div>`;
+            return;
+        }
+
+        btn.textContent = `⚠️ Đơn bất thường (${anomalies.length})`;
+        btn.style.background = '#fef9c3';
+        btn.style.color = '#a16207';
+
+        const rows = anomalies.map(r => `
+            <tr class="table-warning">
+                <td><strong>${escapeHtml(r.MaDon)}</strong></td>
+                <td>${escapeHtml(r.TenNhanVien || '–')}</td>
+                <td><span class="warning-badge">⚠️ ${fmtInt(r.SoLanChinhSua)} lần</span></td>
+                <td style="font-size:13px;">${escapeHtml(r.LanDau || '')}</td>
+                <td style="font-size:13px;">${escapeHtml(r.LanCuoi || '')}</td>
+            </tr>`).join('');
+
+        box.innerHTML = `
+            <div class="alert alert-warning py-2 px-3 mb-3">
+                ⚠️ Phát hiện <strong>${anomalies.length}</strong> đơn hàng có số lần chỉnh sửa bất thường.
+                Hệ thống không tự khóa – vui lòng xem xét thủ công.
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Nhân viên</th>
+                            <th>Số lần chỉnh sửa</th>
+                            <th>Lần đầu</th>
+                            <th>Lần cuối</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>`;
+    }
+
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+
+        const target = byId(`tab${name.charAt(0).toUpperCase() + name.slice(1)}`);
+        if (target) target.classList.add('active');
+        if (btn) btn.classList.add('active');
+    }
+
+    function exportExcel() {
+        const tuNgay = byId('tuNgay').value;
+        const denNgay = byId('denNgay').value;
+        if (!tuNgay || !denNgay) { alert('Chọn khoảng thời gian trước'); return; }
+        window.open(`${API_BASE}/export/excel?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`, '_blank');
+    }
+
+    function exportPDF() {
+        const tuNgay = byId('tuNgay').value;
+        const denNgay = byId('denNgay').value;
+        if (!tuNgay || !denNgay) { alert('Chọn khoảng thời gian trước'); return; }
+        window.open(`${API_BASE}/export/pdf?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`, '_blank');
+    }
+
+    function init() {
+        const today = new Date();
+        const y = today.getFullYear();
+        const m = String(today.getMonth() + 1).padStart(2, '0');
+        byId('tuNgay').value = `${y}-${m}-01`;
+        byId('denNgay').value = formatDateInput(today);
+        loadReport();
+    }
+
+    window.setQuickDate = setQuickDate;
+    window.loadReport = loadReport;
+    window.switchTab = switchTab;
+    window.exportExcel = exportExcel;
+    window.exportPDF = exportPDF;
+
+    document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
 </body>
 </html>
-
