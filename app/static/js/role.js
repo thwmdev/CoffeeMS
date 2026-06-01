@@ -36,18 +36,15 @@ function login() {
         return res.json();
     })
     .then(data => {
-
-
         const userRole = data.role ? data.role.toUpperCase() : "";
-        
+
         document.cookie = `role=${userRole}; path=/; max-age=86400`;
         document.cookie = `token=${data.token}; path=/; max-age=86400`;
-        // alert("Đăng nhập thành công!");
 
         if (userRole === "NHANVIEN") {
-            window.location.href = "/menu"; 
+            window.location.href = "/menu";
         } else if (userRole === "ADMIN") {
-            window.location.href = "/inventory"; 
+            window.location.href = "/inventory";
         }
     })
     .catch(err => {
@@ -60,45 +57,41 @@ document.addEventListener("DOMContentLoaded", () => {
     const rawRole = getCookie("role");
     const role = rawRole ? rawRole.toUpperCase() : "";
 
+    // Chỉ ADMIN thấy: Kho, Công thức, Báo cáo
     const adminModules = ["inventoryModule", "recipeModule", "reportModule"];
-    const staffModules = ["paymentModule"];
+
+    // Cả NHANVIEN và ADMIN đều thấy: Thanh toán, Gọi Món
+    const staffModules  = ["paymentModule", "orderModule"];
 
     if (role === "NHANVIEN") {
-
-
-
         adminModules.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "none";
+            const el = document.getElementById(id);
+            if (el) el.style.display = "none";
         });
         staffModules.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "block";
+            const el = document.getElementById(id);
+            if (el) el.style.display = "block";
         });
+
     } else if (role === "ADMIN") {
-
-
         adminModules.concat(staffModules).forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "block";
+            const el = document.getElementById(id);
+            if (el) el.style.display = "block";
         });
+
     } else {
+        // Chưa đăng nhập: ẩn tất cả
         adminModules.concat(staffModules).forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.style.display = "none";
+            const el = document.getElementById(id);
+            if (el) el.style.display = "none";
         });
     }
 });
 
 function logout() {
     if (confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
-
-
         document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
         document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-        
-        
-        
         window.location.href = "/";
     }
 }
