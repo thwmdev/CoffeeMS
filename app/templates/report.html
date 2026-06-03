@@ -22,205 +22,107 @@
 
         * { box-sizing: border-box; }
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #f7f8fb;
-        }
+        body { font-family: 'Poppins', sans-serif; background: #f7f8fb; }
 
         .date-filter {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
+            display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 18px;
         }
-
         .date-filter input[type="date"] {
-            height: 50px;
-            border-radius: 14px;
-            border: 1px solid #e5e7eb;
-            padding: 0 16px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 15px;
-            background: #fff;
+            height: 40px; border-radius: 14px; border: 1px solid #e5e7eb;
+            padding: 0 16px; font-family: 'Poppins', sans-serif; font-size: 14px; background: #fff;
         }
 
-        .quick-btns {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 22px;
-        }
+        .quick-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
 
         .kpi-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 18px;
-            margin-bottom: 28px;
+            gap: 18px; margin-bottom: 28px;
         }
-
         .kpi-card {
-            background: #fff;
-            border-radius: var(--card-radius);
-            padding: 28px 22px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-            transition: 0.25s ease;
+            background: #fff; border-radius: var(--card-radius); padding: 28px 22px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05); transition: 0.25s ease;
             border: 1px solid rgba(0,0,0,0.03);
         }
-
         .kpi-card:hover { transform: translateY(-3px); }
-
-        .kpi-card .kpi-label {
-            font-size: 14px;
-            color: var(--text-muted);
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
+        .kpi-card .kpi-label { font-size: 14px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; }
         .kpi-card .kpi-value {
-            font-size: clamp(20px, 2vw, 30px);
-            font-weight: 700;
-            color: var(--brand);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-size: clamp(20px, 2vw, 30px); font-weight: 700; color: var(--brand);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
 
         .chart-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-bottom: 28px;
+            display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 28px;
         }
-
-        @media(max-width: 900px) {
-            .chart-row { grid-template-columns: 1fr; }
-        }
+        @media(max-width: 900px) { .chart-row { grid-template-columns: 1fr; } }
 
         .chart-box, .table-box {
-            background: #fff;
-            border-radius: var(--card-radius);
-            padding: 24px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-            border: 1px solid rgba(0,0,0,0.03);
+            background: #fff; border-radius: var(--card-radius); padding: 24px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.03);
         }
+        .chart-box h3 { font-size: 18px; font-weight: 600; margin-bottom: 18px; }
 
-        .chart-box h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 18px;
-        }
+        /* FIX: chiều cao cố định cho chart container */
+        .chart-container { position: relative; height: 220px; width: 100%; }
+        .chart-container-sm { position: relative; height: 160px; width: 100%; }
+        .chart-container-bar { position: relative; height: 200px; width: 100%; margin-top: 20px; }
 
         .warning-badge {
-            background: #fef9c3;
-            color: #a16207;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 4px 12px;
-            border-radius: 20px;
-            display: inline-block;
-            margin-bottom: 8px;
+            background: #fef9c3; color: #a16207; font-size: 13px; font-weight: 600;
+            padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 8px;
         }
 
-        .tab-nav {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
+        .tab-nav { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-nav button {
-            background: #f4f7fe;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s ease;
+            background: #f4f7fe; border: none; border-radius: 12px; padding: 10px 20px;
+            font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s ease;
             font-family: 'Poppins', sans-serif;
         }
-
-        .tab-nav button.active,
-        .tab-nav button:hover {
-            background: var(--brand);
-            color: #fff;
-        }
+        .tab-nav button.active, .tab-nav button:hover { background: var(--brand); color: #fff; }
 
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #9ca3af;
-            font-size: 15px;
+            text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 15px;
         }
-
         .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
 
         .table-responsive { border-radius: 18px; }
-
-        .table thead th {
-            font-size: 14px;
-            white-space: nowrap;
-        }
-
-        .table tbody td {
-            font-size: 14px;
-            vertical-align: middle;
-        }
-
-        .badge-soft {
-            border-radius: 999px;
-            padding: 5px 12px;
-            font-weight: 600;
-        }
+        .table thead th { font-size: 14px; white-space: nowrap; }
+        .table tbody td { font-size: 14px; vertical-align: middle; }
+        .badge-soft { border-radius: 999px; padding: 5px 12px; font-weight: 600; }
 
         #ptLegend > div {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-            font-size: 13px;
+            display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px;
         }
-
         .legend-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            flex: 0 0 12px;
+            width: 12px; height: 12px; border-radius: 50%;
+            display: inline-block; flex: 0 0 12px;
         }
 
-        .loading-wrap {
-            text-align: center;
-            padding: 40px 0;
-            color: #9ca3af;
-        }
+        .loading-wrap { text-align: center; padding: 40px 0; color: #9ca3af; }
     </style>
 </head>
 <body>
 
 <div class="wrapper">
 
-    {% include 'sidebar.html'%}
+    {% include 'sidebar.html' %}
 
     <div class="main-content">
         <div class="page-title">
-            <h1>Báo cáo Doanh thu & Hiệu suất</h1>
+            <h1>Báo cáo Doanh thu</h1>
         </div>
 
         <div class="date-filter">
             <label style="font-weight:600;font-size:15px;">Từ ngày:</label>
             <input type="date" id="tuNgay">
-
             <label style="font-weight:600;font-size:15px;">Đến ngày:</label>
             <input type="date" id="denNgay">
-
-            <button class="btn btn-warning" onclick="loadReport()">📊 Xem báo cáo</button>
-            <button class="btn btn-outline-dark" onclick="exportExcel()">⬇️ Excel / CSV</button>
-            <button class="btn btn-outline-danger" onclick="exportPDF()">🖨️ PDF</button>
+            <button class="btn btn-warning" onclick="loadReport()">Xem báo cáo</button>
+            <button class="btn btn-outline-dark" onclick="exportExcel()">Xuất Excel</button>
+            <button class="btn btn-outline-danger" onclick="exportPDF()">Xuất PDF</button>
         </div>
 
         <div class="quick-btns">
@@ -245,44 +147,48 @@
         <div id="dashboard" style="display:none;">
             <div class="kpi-grid">
                 <div class="kpi-card">
-                    <div class="kpi-label">💰 Tổng doanh thu</div>
+                    <div class="kpi-label">Tổng doanh thu</div>
                     <div class="kpi-value" id="kpiDoanhThu">–</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">📄 Tổng đơn hàng</div>
+                    <div class="kpi-label">Tổng đơn hàng</div>
                     <div class="kpi-value" id="kpiTongDon">–</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">📈 Giá trị TB / đơn</div>
+                    <div class="kpi-label">Giá trị TB / đơn</div>
                     <div class="kpi-value" id="kpiTBDon">–</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">🏷️ Tổng giảm giá</div>
+                    <div class="kpi-label">Tổng giảm giá</div>
                     <div class="kpi-value" id="kpiGiam">–</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">🍵 Tổng món bán ra</div>
+                    <div class="kpi-label">Tổng món bán ra</div>
                     <div class="kpi-value" id="kpiMonBan">–</div>
                 </div>
             </div>
 
             <div class="chart-row">
                 <div class="chart-box">
-                    <h3>📈 Doanh thu theo ngày</h3>
-                    <canvas id="chartRevenue" height="110"></canvas>
+                    <h3>Doanh thu theo ngày</h3>
+                    <!-- FIX: bọc canvas trong div có chiều cao cố định -->
+                    <div class="chart-container">
+                        <canvas id="chartRevenue"></canvas>
+                    </div>
                 </div>
-
                 <div class="chart-box">
-                    <h3>💳 Phương thức thanh toán</h3>
-                    <canvas id="chartPayment" height="180"></canvas>
+                    <h3>Phương thức thanh toán</h3>
+                    <div class="chart-container-sm">
+                        <canvas id="chartPayment"></canvas>
+                    </div>
                     <div id="ptLegend" style="margin-top:14px;"></div>
                 </div>
             </div>
 
             <div class="tab-nav">
-                <button class="active" onclick="switchTab('top', this)">🏆 Top món bán chạy</button>
-                <button onclick="switchTab('history', this)">📝 Lịch sử chỉnh sửa</button>
-                <button onclick="switchTab('anomaly', this)" id="tabAnomalyBtn">⚠️ Đơn bất thường</button>
+                <button class="active" onclick="switchTab('top', this)">Top món bán chạy</button>
+                <button onclick="switchTab('history', this)">Lịch sử chỉnh sửa</button>
+                <button onclick="switchTab('anomaly', this)" id="tabAnomalyBtn">Đơn bất thường</button>
             </div>
 
             <div class="tab-content active" id="tabTop">
@@ -301,7 +207,10 @@
                             <tbody id="topItemsTable"></tbody>
                         </table>
                     </div>
-                    <canvas id="chartTopItems" height="90" style="margin-top:20px;"></canvas>
+                    <!-- FIX: chiều cao cố định cho bar chart -->
+                    <div class="chart-container-bar">
+                        <canvas id="chartTopItems"></canvas>
+                    </div>
                 </div>
             </div>
 
@@ -339,17 +248,15 @@
     let chartPayment = null;
     let chartTopItems = null;
 
-    function byId(id) {
-        return document.getElementById(id);
-    }
+    // Lưu dữ liệu hiện tại để dùng khi xuất PDF
+    let currentReportData = null;
+
+    function byId(id) { return document.getElementById(id); }
 
     function escapeHtml(value) {
         return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
 
     function toNumber(value, fallback = 0) {
@@ -373,42 +280,35 @@
         return date.toLocaleString('vi-VN');
     }
 
+    function formatDateInput(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
     function showLoading(show) {
         const loading = byId('loadingState');
         const dashboard = byId('dashboard');
         const empty = byId('emptyState');
         if (!loading || !dashboard || !empty) return;
         loading.style.display = show ? 'block' : 'none';
-        if (show) {
-            dashboard.style.display = 'none';
-            empty.style.display = 'none';
-        }
+        if (show) { dashboard.style.display = 'none'; empty.style.display = 'none'; }
         document.querySelectorAll('.date-filter button').forEach(btn => btn.disabled = show);
     }
 
     async function fetchJson(url, options = {}) {
         const res = await fetch(url, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...(options.headers || {})
-            },
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
             ...options
         });
-
         let payload = null;
-        try {
-            payload = await res.json();
-        } catch {
-            throw new Error('Máy chủ trả về dữ liệu không hợp lệ.');
-        }
-
-        if (!res.ok || payload?.success === false) {
-            throw new Error(payload?.message || `Lỗi HTTP ${res.status}`);
-        }
-
+        try { payload = await res.json(); } catch { throw new Error('Máy chủ trả về dữ liệu không hợp lệ.'); }
+        if (!res.ok || payload?.success === false) throw new Error(payload?.message || `Lỗi HTTP ${res.status}`);
         return payload;
     }
 
+    // ── NORMALIZE ──
     function normalizeSummary(raw) {
         const s = raw || {};
         return {
@@ -463,11 +363,11 @@
         })) : [];
     }
 
+    // ── DATE HELPERS ──
     function setQuickDate(preset) {
         const today = new Date();
         let from = new Date(today);
         let to = new Date(today);
-
         if (preset === 'today') {
             // giữ nguyên
         } else if (preset === 'week') {
@@ -478,34 +378,21 @@
             from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
             to = new Date(today.getFullYear(), today.getMonth(), 0);
         }
-
         byId('tuNgay').value = formatDateInput(from);
         byId('denNgay').value = formatDateInput(to);
         loadReport();
     }
 
-    function formatDateInput(d) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-    }
-
+    // ── LOAD REPORT ──
     async function loadReport() {
         const tuNgay = byId('tuNgay').value;
         const denNgay = byId('denNgay').value;
 
-        if (!tuNgay || !denNgay) {
-            alert('Vui lòng chọn khoảng thời gian');
-            return;
-        }
-
-        if (tuNgay > denNgay) {
-            alert('Khoảng thời gian không hợp lệ: ngày bắt đầu phải ≤ ngày kết thúc');
-            return;
-        }
+        if (!tuNgay || !denNgay) { alert('Vui lòng chọn khoảng thời gian'); return; }
+        if (tuNgay > denNgay) { alert('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc'); return; }
 
         showLoading(true);
+        currentReportData = null;
 
         try {
             const [revRes, histRes] = await Promise.all([
@@ -513,12 +400,15 @@
                 fetchJson(`${API_BASE}/history?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`)
             ]);
 
-            const summary = normalizeSummary(revRes.TomTat ?? revRes.tom_tat ?? revRes.summary);
-            const byDay = normalizeRevenueRows(revRes.TheoNgay ?? revRes.theo_ngay ?? revRes.by_day);
-            const byPT = normalizePaymentRows(revRes.PhuongThucTT ?? revRes.phuong_thuc_tt ?? revRes.by_payment);
+            const summary  = normalizeSummary(revRes.TomTat ?? revRes.tom_tat ?? revRes.summary);
+            const byDay    = normalizeRevenueRows(revRes.TheoNgay ?? revRes.theo_ngay ?? revRes.by_day);
+            const byPT     = normalizePaymentRows(revRes.PhuongThucTT ?? revRes.phuong_thuc_tt ?? revRes.by_payment);
             const topItems = normalizeTopItems(revRes.TopMon ?? revRes.top_mon ?? revRes.top_items);
-            const history = normalizeHistory(histRes.LichSu ?? histRes.lich_su ?? histRes.history);
-            const anomalies = normalizeAnomalies(histRes.BatThuong ?? histRes.bat_thuong ?? histRes.anomalies);
+            const history  = normalizeHistory(histRes.LichSu ?? histRes.lich_su ?? histRes.history);
+            const anomalies= normalizeAnomalies(histRes.BatThuong ?? histRes.bat_thuong ?? histRes.anomalies);
+
+            // Lưu lại để dùng khi xuất PDF phía client
+            currentReportData = { summary, byDay, byPT, topItems, history, anomalies, tuNgay, denNgay };
 
             if (revRes.empty || (!summary.TongDon && !byDay.length && !topItems.length)) {
                 byId('emptyState').style.display = 'block';
@@ -535,20 +425,22 @@
             renderTopItems(topItems);
             renderHistory(history);
             renderAnomalies(anomalies);
+
         } catch (err) {
             console.error(err);
-            alert('Lỗi kết nối máy chủ');
+            alert('Lỗi kết nối máy chủ: ' + err.message);
         } finally {
             showLoading(false);
         }
     }
 
+    // ── RENDER KPIs ──
     function renderKPIs(data) {
         byId('kpiDoanhThu').innerText = fmtMoney(data.TongDoanhThu);
-        byId('kpiTongDon').innerText = fmtInt(data.TongDon);
-        byId('kpiTBDon').innerText = fmtMoney(data.GiaTriTBDon);
-        byId('kpiGiam').innerText = fmtMoney(data.TongGiamGia);
-        byId('kpiMonBan').innerText = fmtInt(data.TongMonBan);
+        byId('kpiTongDon').innerText  = fmtInt(data.TongDon);
+        byId('kpiTBDon').innerText    = fmtMoney(data.GiaTriTBDon);
+        byId('kpiGiam').innerText     = fmtMoney(data.TongGiamGia);
+        byId('kpiMonBan').innerText   = fmtInt(data.TongMonBan);
     }
 
     function destroyChart(chart) {
@@ -556,20 +448,20 @@
         return null;
     }
 
+    // ── RENDER CHARTS ──
+    // FIX: thêm responsive:true + maintainAspectRatio:false để chart không bị kéo dài vô hạn
     function renderRevenueChart(byDay) {
-        const labels = byDay.map(r => r.Ngay);
-        const values = byDay.map(r => r.DoanhThu);
-
         chartRevenue = destroyChart(chartRevenue);
+        if (!byDay.length) return;
 
         const ctx = byId('chartRevenue').getContext('2d');
         chartRevenue = new Chart(ctx, {
             type: 'line',
             data: {
-                labels,
+                labels: byDay.map(r => r.Ngay),
                 datasets: [{
                     label: 'Doanh thu',
-                    data: values,
+                    data: byDay.map(r => r.DoanhThu),
                     borderColor: '#ff9800',
                     backgroundColor: 'rgba(255,152,0,0.12)',
                     borderWidth: 2.5,
@@ -580,21 +472,15 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false,   // KEY FIX
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${fmtMoney(ctx.raw)}`
-                        }
-                    }
+                    tooltip: { callbacks: { label: ctx => ` ${fmtMoney(ctx.raw)}` } }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            callback: v => (v / 1000000).toFixed(1) + 'tr'
-                        }
+                        ticks: { callback: v => (v / 1000000).toFixed(1) + 'tr' }
                     }
                 }
             }
@@ -602,12 +488,16 @@
     }
 
     function renderPaymentChart(byPT) {
+        chartPayment = destroyChart(chartPayment);
         const labels = byPT.map(r => r.PhuongThuc || 'Khác');
         const values = byPT.map(r => r.TongTien);
-        const colors = ['#ff9800', '#3b82f6', '#22c55e', '#a855f7', '#ef4444'];
-        const total = values.reduce((a, b) => a + b, 0);
+        const colors = ['#ff9800','#3b82f6','#22c55e','#a855f7','#ef4444'];
+        const total  = values.reduce((a,b) => a+b, 0);
 
-        chartPayment = destroyChart(chartPayment);
+        if (!labels.length) {
+            byId('ptLegend').innerHTML = '<div class="text-muted small">Không có dữ liệu</div>';
+            return;
+        }
 
         const ctx = byId('chartPayment').getContext('2d');
         chartPayment = new Chart(ctx, {
@@ -617,66 +507,48 @@
                 datasets: [{
                     data: values,
                     backgroundColor: colors.slice(0, labels.length),
-                    borderWidth: 2,
-                    borderColor: '#fff'
+                    borderWidth: 2, borderColor: '#fff'
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false,   // KEY FIX
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${ctx.label}: ${fmtMoney(ctx.raw)}`
-                        }
-                    }
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmtMoney(ctx.raw)}` } }
                 },
                 cutout: '60%'
             }
         });
 
         const legend = byId('ptLegend');
-        if (!legend) return;
-
-        if (!labels.length) {
-            legend.innerHTML = '<div class="text-muted small">Không có dữ liệu</div>';
-            return;
+        if (legend) {
+            legend.innerHTML = labels.map((l, i) => {
+                const pct = total ? ((values[i]/total)*100).toFixed(1) : '0.0';
+                return `<div><span class="legend-dot" style="background:${colors[i]||'#999'}"></span>
+                    <span>${escapeHtml(l)}: <strong>${fmtMoney(values[i])}</strong> (${pct}%)</span></div>`;
+            }).join('');
         }
-
-        legend.innerHTML = labels.map((l, i) => {
-            const pct = total ? ((values[i] / total) * 100).toFixed(1) : '0.0';
-            return `
-                <div>
-                    <span class="legend-dot" style="background:${colors[i] || '#999'}"></span>
-                    <span>${escapeHtml(l)}: <strong>${fmtMoney(values[i])}</strong> (${pct}%)</span>
-                </div>`;
-        }).join('');
     }
 
     function renderTopItems(items) {
         const tbody = byId('topItemsTable');
         if (!tbody) return;
 
-        tbody.innerHTML = '';
-
-        if (!items.length) {
-            tbody.innerHTML = `
+        tbody.innerHTML = !items.length
+            ? `<tr><td colspan="5" class="text-center text-muted py-4">Không có dữ liệu</td></tr>`
+            : items.map((item, i) => `
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-4">Không có dữ liệu</td>
-                </tr>`;
-        } else {
-            tbody.innerHTML = items.map((item, i) => `
-                <tr>
-                    <td><strong>${i + 1}</strong></td>
+                    <td><strong>${i+1}</strong></td>
                     <td>${escapeHtml(item.TenMon)}</td>
-                    <td><span class="badge bg-warning text-dark badge-soft">${escapeHtml(item.TenDanhMuc || '–')}</span></td>
+                    <td><span class="badge bg-warning text-dark badge-soft">${escapeHtml(item.TenDanhMuc||'–')}</span></td>
                     <td>${fmtInt(item.TongSL)}</td>
                     <td>${fmtMoney(item.DoanhThu)}</td>
                 </tr>`).join('');
-        }
 
         chartTopItems = destroyChart(chartTopItems);
+        if (!items.length) return;
+
         const ctx = byId('chartTopItems').getContext('2d');
         chartTopItems = new Chart(ctx, {
             type: 'bar',
@@ -687,27 +559,17 @@
                     data: items.map(r => r.TongSL),
                     backgroundColor: 'rgba(255,152,0,0.7)',
                     borderColor: '#ff9800',
-                    borderWidth: 1,
-                    borderRadius: 6
+                    borderWidth: 1, borderRadius: 6
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
+                maintainAspectRatio: false,   // KEY FIX
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${ctx.raw} món`
-                        }
-                    }
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.raw} món` } }
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { precision: 0 }
-                    }
-                }
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
             }
         });
     }
@@ -717,38 +579,28 @@
         if (!box) return;
 
         if (!history.length) {
-            box.innerHTML = `
-                <div class="empty-state">
-                    <div class="emoji">📂</div>
-                    <div>Không có lịch sử chỉnh sửa trong khoảng thời gian này</div>
-                </div>`;
+            box.innerHTML = `<div class="empty-state"><div class="emoji">📂</div>
+                <div>Không có lịch sử chỉnh sửa trong khoảng thời gian này</div></div>`;
             return;
         }
 
         const rows = history.map(r => `
             <tr>
                 <td>${escapeHtml(r.MaDon)}</td>
-                <td>${escapeHtml(r.TenNhanVien || '–')}</td>
-                <td><span class="badge bg-secondary badge-soft">${escapeHtml(r.HanhDong || '–')}</span></td>
-                <td style="font-size:13px;">${escapeHtml(r.NoiDung || '')}</td>
-                <td style="font-size:13px; white-space:nowrap;">${escapeHtml(formatDate(r.ThoiGian))}</td>
+                <td>${escapeHtml(r.TenNhanVien||'–')}</td>
+                <td><span class="badge bg-secondary badge-soft">${escapeHtml(r.HanhDong||'–')}</span></td>
+                <td style="font-size:13px;">${escapeHtml(r.NoiDung||'')}</td>
+                <td style="font-size:13px;white-space:nowrap;">${escapeHtml(formatDate(r.ThoiGian))}</td>
             </tr>`).join('');
 
-        box.innerHTML = `
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Mã đơn</th>
-                            <th>Nhân viên</th>
-                            <th>Hành động</th>
-                            <th>Nội dung</th>
-                            <th>Thời gian</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>`;
+        box.innerHTML = `<div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Mã đơn</th><th>Nhân viên</th>
+                    <th>Hành động</th><th>Nội dung</th><th>Thời gian</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table></div>`;
     }
 
     function renderAnomalies(anomalies) {
@@ -757,60 +609,49 @@
         if (!btn || !box) return;
 
         if (!anomalies.length) {
-            btn.textContent = '⚠️ Đơn bất thường';
-            btn.style.background = '';
-            btn.style.color = '';
-            box.innerHTML = `
-                <div class="empty-state">
-                    <div class="emoji">✅</div>
-                    <div>Không phát hiện đơn hàng bất thường trong kỳ này</div>
-                </div>`;
+            btn.textContent = 'Đơn bất thường';
+            btn.style.background = ''; btn.style.color = '';
+            box.innerHTML = `<div class="empty-state"><div class="emoji">✅</div>
+                <div>Không phát hiện đơn hàng bất thường trong kỳ này</div></div>`;
             return;
         }
 
-        btn.textContent = `⚠️ Đơn bất thường (${anomalies.length})`;
-        btn.style.background = '#fef9c3';
-        btn.style.color = '#a16207';
+        btn.textContent = `Đơn bất thường (${anomalies.length})`;
+        btn.style.background = '#fef9c3'; btn.style.color = '#a16207';
 
         const rows = anomalies.map(r => `
             <tr class="table-warning">
                 <td><strong>${escapeHtml(r.MaDon)}</strong></td>
-                <td>${escapeHtml(r.TenNhanVien || '–')}</td>
-                <td><span class="warning-badge">⚠️ ${fmtInt(r.SoLanChinhSua)} lần</span></td>
-                <td style="font-size:13px;">${escapeHtml(r.LanDau || '')}</td>
-                <td style="font-size:13px;">${escapeHtml(r.LanCuoi || '')}</td>
+                <td>${escapeHtml(r.TenNhanVien||'–')}</td>
+                <td><span class="warning-badge">${fmtInt(r.SoLanChinhSua)} lần</span></td>
+                <td style="font-size:13px;">${escapeHtml(r.LanDau||'')}</td>
+                <td style="font-size:13px;">${escapeHtml(r.LanCuoi||'')}</td>
             </tr>`).join('');
 
         box.innerHTML = `
             <div class="alert alert-warning py-2 px-3 mb-3">
-                ⚠️ Phát hiện <strong>${anomalies.length}</strong> đơn hàng có số lần chỉnh sửa bất thường.
+                Phát hiện <strong>${anomalies.length}</strong> đơn hàng có số lần chỉnh sửa bất thường.
                 Hệ thống không tự khóa – vui lòng xem xét thủ công.
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Mã đơn</th>
-                            <th>Nhân viên</th>
-                            <th>Số lần chỉnh sửa</th>
-                            <th>Lần đầu</th>
-                            <th>Lần cuối</th>
-                        </tr>
-                    </thead>
+                    <thead><tr>
+                        <th>Mã đơn</th><th>Nhân viên</th>
+                        <th>Số lần chỉnh sửa</th><th>Lần đầu</th><th>Lần cuối</th>
+                    </tr></thead>
                     <tbody>${rows}</tbody>
-                </table>
-            </div>`;
+                </table></div>`;
     }
 
     function switchTab(name, btn) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
-
         const target = byId(`tab${name.charAt(0).toUpperCase() + name.slice(1)}`);
         if (target) target.classList.add('active');
         if (btn) btn.classList.add('active');
     }
 
+    // ── EXPORT ──
     function exportExcel() {
         const tuNgay = byId('tuNgay').value;
         const denNgay = byId('denNgay').value;
@@ -818,27 +659,92 @@
         window.open(`${API_BASE}/export/excel?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`, '_blank');
     }
 
+    // FIX: exportPDF kiểm tra dữ liệu trước, nếu server trả lỗi thì fallback in trang hiện tại
     function exportPDF() {
         const tuNgay = byId('tuNgay').value;
         const denNgay = byId('denNgay').value;
-        if (!tuNgay || !denNgay) { alert('Chọn khoảng thời gian trước'); return; }
-        window.open(`${API_BASE}/export/pdf?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`, '_blank');
+
+        if (!tuNgay || !denNgay) {
+            alert('Chọn khoảng thời gian trước');
+            return;
+        }
+
+        window.open(
+            `${API_BASE}/export/pdf?tu_ngay=${encodeURIComponent(tuNgay)}&den_ngay=${encodeURIComponent(denNgay)}`,
+            '_blank'
+        );
     }
 
+    // In trang báo cáo hiện tại dưới dạng PDF (fallback)
+    function printCurrentReport() {
+        if (!currentReportData) { alert('Chưa có dữ liệu để xuất'); return; }
+        const d = currentReportData;
+
+        const topRows = d.topItems.map((item, i) => `
+            <tr>
+                <td>${i+1}</td>
+                <td>${escapeHtml(item.TenMon)}</td>
+                <td>${escapeHtml(item.TenDanhMuc||'–')}</td>
+                <td style="text-align:right">${fmtInt(item.TongSL)}</td>
+                <td style="text-align:right">${fmtMoney(item.DoanhThu)}</td>
+            </tr>`).join('');
+
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+        <title>Báo cáo ${d.tuNgay} – ${d.denNgay}</title>
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; font-size: 13px; padding: 24px; color: #212529; }
+            h1 { font-size: 20px; margin-bottom: 4px; }
+            .sub { color: #6b7280; margin-bottom: 24px; }
+            .kpi-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+            .kpi { background: #f8f9fa; border-radius: 10px; padding: 14px 18px; flex: 1; min-width: 120px; }
+            .kpi-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+            .kpi-value { font-size: 18px; font-weight: 700; color: #ff9800; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th { background: #f8f9fa; font-size: 12px; padding: 8px 10px; text-align: left; border-bottom: 1px solid #dee2e6; }
+            td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+            h2 { font-size: 15px; margin: 24px 0 8px; }
+            @media print { body { padding: 0; } }
+        </style></head><body>
+        <h1>Báo cáo Doanh thu</h1>
+        <div class="sub">Từ ngày ${d.tuNgay} đến ${d.denNgay}</div>
+        <div class="kpi-row">
+            <div class="kpi"><div class="kpi-label">Tổng doanh thu</div><div class="kpi-value">${fmtMoney(d.summary.TongDoanhThu)}</div></div>
+            <div class="kpi"><div class="kpi-label">Tổng đơn hàng</div><div class="kpi-value">${fmtInt(d.summary.TongDon)}</div></div>
+            <div class="kpi"><div class="kpi-label">Giá trị TB/đơn</div><div class="kpi-value">${fmtMoney(d.summary.GiaTriTBDon)}</div></div>
+            <div class="kpi"><div class="kpi-label">Tổng giảm giá</div><div class="kpi-value">${fmtMoney(d.summary.TongGiamGia)}</div></div>
+            <div class="kpi"><div class="kpi-label">Tổng món bán</div><div class="kpi-value">${fmtInt(d.summary.TongMonBan)}</div></div>
+        </div>
+        <h2>Top món bán chạy</h2>
+        <table>
+            <thead><tr><th>#</th><th>Tên món</th><th>Danh mục</th><th>Số lượng</th><th>Doanh thu</th></tr></thead>
+            <tbody>${topRows || '<tr><td colspan="5" style="text-align:center;color:#9ca3af">Không có dữ liệu</td></tr>'}</tbody>
+        </table>
+        <div style="margin-top:32px;text-align:center;color:#9ca3af;font-size:11px;">
+            Xuất lúc ${new Date().toLocaleString('vi-VN')} — CoffeeMS
+        </div>
+        </body></html>`;
+
+        const w = window.open('', '_blank', 'width=800,height=700');
+        if (!w) { alert('Trình duyệt đã chặn popup. Vui lòng cho phép popup để xuất PDF.'); return; }
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 500);
+    }
+
+    // ── INIT ──
     function init() {
         const today = new Date();
-        const y = today.getFullYear();
-        const m = String(today.getMonth() + 1).padStart(2, '0');
-        byId('tuNgay').value = `${y}-${m}-01`;
+        byId('tuNgay').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`;
         byId('denNgay').value = formatDateInput(today);
         loadReport();
     }
 
     window.setQuickDate = setQuickDate;
-    window.loadReport = loadReport;
-    window.switchTab = switchTab;
-    window.exportExcel = exportExcel;
-    window.exportPDF = exportPDF;
+    window.loadReport   = loadReport;
+    window.switchTab    = switchTab;
+    window.exportExcel  = exportExcel;
+    window.exportPDF    = exportPDF;
 
     document.addEventListener('DOMContentLoaded', init);
 })();

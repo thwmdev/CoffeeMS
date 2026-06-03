@@ -12,7 +12,6 @@
     <style>
         .payment-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
 
-        /* Chọn bàn */
         .table-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
         .table-tab { padding: 6px 18px; border-radius: 50px; border: 1.5px solid #dee2e6; background: transparent; font-family: 'Poppins', sans-serif; font-size: 0.82rem; font-weight: 600; color: #6c757d; cursor: pointer; transition: all 0.18s; }
         .table-tab:hover { border-color: #0d6efd; color: #0d6efd; }
@@ -20,7 +19,6 @@
         .table-tab.occupied { border-color: #fd7e14; color: #fd7e14; }
         .table-tab.active.occupied { background: #fd7e14; border-color: #fd7e14; color: #fff; }
 
-        /* Order card */
         .order-card { background: #fff; border-radius: 12px; border: 1px solid #dee2e6; overflow: hidden; }
         .order-card-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
         .order-table-name { font-size: 1.1rem; font-weight: 700; margin: 0; }
@@ -35,14 +33,12 @@
         .summary-total-label { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
         .summary-total-amount { font-size: 1.4rem; font-weight: 700; color: #0d6efd; }
 
-        /* Action boxes */
         .action-box { background: #fff; border: 1px solid #dee2e6; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
         .action-box:last-child { margin-bottom: 0; }
         .action-box-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 12px 18px; display: flex; align-items: center; gap: 10px; }
         .action-box-title { font-size: 0.9rem; font-weight: 700; margin: 0; }
         .action-box-body { padding: 16px 18px; }
 
-        /* Payment methods */
         .pay-method { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; border: 1.5px solid #dee2e6; background: transparent; font-family: 'Poppins', sans-serif; font-size: 0.85rem; font-weight: 600; color: #212529; cursor: pointer; text-align: left; transition: all 0.15s; margin-bottom: 8px; }
         .pay-method:hover { border-color: #0d6efd; color: #0d6efd; }
         .pay-method.selected { border-color: #198754; background: #d1e7dd; color: #0f5132; }
@@ -51,9 +47,12 @@
         .cash-input-group.visible { display: block; }
         .qr-box { display: none; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; animation: fadeIn 0.2s ease; }
         .qr-box.visible { display: flex; }
-        .qr-placeholder { width: 130px; height: 130px; border-radius: 10px; border: 2px dashed #dee2e6; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #6c757d; font-size: 0.75rem; text-align: center; gap: 6px; }
 
-        /* Vouchers */
+        /* QR Image */
+        .qr-image-wrap { background: #fff; border-radius: 12px; border: 2px solid #dee2e6; padding: 10px; display: flex; align-items: center; justify-content: center; }
+        .qr-image-wrap img { width: 160px; height: 160px; display: block; }
+        .qr-confirm-note { font-size: 0.75rem; color: #6c757d; text-align: center; background: #f8f9fa; border-radius: 8px; padding: 8px 12px; width: 100%; }
+
         .voucher-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; border: 1.5px dashed #dee2e6; cursor: pointer; transition: all 0.15s; margin-bottom: 8px; position: relative; overflow: hidden; }
         .voucher-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #fd7e14; opacity: 0; transition: opacity 0.15s; }
         .voucher-item:hover, .voucher-item.selected { border-color: #fd7e14; background: #fff3cd; }
@@ -62,20 +61,26 @@
         .voucher-desc { font-size: 0.73rem; color: #6c757d; margin-top: 1px; }
         .voucher-value { margin-left: auto; font-size: 0.82rem; font-weight: 700; color: #198754; white-space: nowrap; }
 
-        /* Receipt */
-        .receipt { font-family: 'Courier New', monospace; font-size: 0.82rem; line-height: 1.6; }
+        .receipt { width: 100mm; margin: 0 auto; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; color: #000; }
         .receipt-logo { text-align: center; font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
         .receipt-center { text-align: center; color: #6c757d; font-size: 0.75rem; }
         .receipt-divider { border: none; border-top: 1.5px dashed #dee2e6; margin: 8px 0; }
         .receipt-row { display: flex; justify-content: space-between; gap: 8px; }
         .r-name { flex: 1; } .r-qty { width: 30px; text-align: center; } .r-price { width: 80px; text-align: right; }
         .receipt-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 0.9rem; }
+        .receipt-qr-wrap { text-align: center; margin: 10px 0; }
+        .receipt-qr-wrap img { width: 180px; height: 180px; display: inline-block; }
 
         .empty-order { padding: 40px 20px; text-align: center; color: #adb5bd; font-size: 0.85rem; }
         .toast-custom { position: fixed; bottom: 28px; right: 28px; background: #212529; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 9999; display: none; animation: slideUp 0.22s ease; }
         .toast-custom.visible { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Quick cash buttons */
+        .quick-cash { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .quick-cash button { padding: 4px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 6px; border: 1px solid #dee2e6; background: #f8f9fa; cursor: pointer; transition: all 0.15s; font-family: 'Poppins', sans-serif; }
+        .quick-cash button:hover { border-color: #0d6efd; color: #0d6efd; background: #e8f0fe; }
     </style>
 </head>
 <body>
@@ -128,42 +133,49 @@
                 <!-- BOX 1: Tạm tính -->
                 <div class="action-box">
                     <div class="action-box-header">
-                        <span>🖨️</span>
-                        <h6 class="action-box-title">Tạm Tính</h6>
+                        <h6 class="action-box-title">In Hóa Đơn Tạm Tính</h6>
                     </div>
                     <div class="action-box-body">
                         <p class="text-muted small mb-3">In hóa đơn tạm tính để đưa cho khách xem trước khi thanh toán chính thức.</p>
-                        <button class="btn btn-outline-primary w-100" onclick="openPrintModal()">🖨️ In Hóa Đơn Tạm Tính</button>
+                        <button class="btn btn-outline-primary w-100" onclick="openPrintModal()">In Hóa Đơn Tạm Tính</button>
                     </div>
                 </div>
 
                 <!-- BOX 2: Thanh toán -->
                 <div class="action-box">
                     <div class="action-box-header">
-                        <span>💳</span>
                         <h6 class="action-box-title">Thanh Toán</h6>
                     </div>
                     <div class="action-box-body">
                         <p class="input-group-label mb-2">Hình thức thanh toán</p>
-                        <button class="pay-method" id="pm-cash"  onclick="selectPayMethod('cash')"><span>💵</span> Tiền mặt</button>
-                        <button class="pay-method" id="pm-qr"    onclick="selectPayMethod('qr')"><span>📱</span> Chuyển khoản QR</button>
-                        <button class="pay-method" id="pm-combo" onclick="selectPayMethod('combo')"><span>🔀</span> Kết hợp</button>
+                        <button class="pay-method" id="pm-cash"  onclick="selectPayMethod('cash')">Tiền mặt</button>
+                        <button class="pay-method" id="pm-qr"    onclick="selectPayMethod('qr')">Chuyển khoản QR</button>
+                        <button class="pay-method" id="pm-combo" onclick="selectPayMethod('combo')">Kết hợp</button>
 
+                        <!-- TIỀN MẶT: tự điền sẵn tổng tiền, có nút làm tròn nhanh -->
                         <div class="cash-input-group" id="cashGroup">
                             <div class="input-group-label">Số tiền khách đưa (₫)</div>
-                            <input type="number" class="form-control form-control-sm mb-2" id="cashInput" placeholder="Nhập số tiền..." oninput="calcChange()">
-                            <div class="d-flex justify-content-between small text-muted">
+                            <input type="number" class="form-control form-control-sm mb-1" id="cashInput" placeholder="Nhập số tiền..." oninput="calcChange()">
+                            <div class="quick-cash" id="quickCashBtns"></div>
+                            <div class="d-flex justify-content-between small text-muted mt-2">
                                 <span>Tiền thối:</span>
                                 <span id="changeAmount" class="fw-bold text-success">— ₫</span>
                             </div>
                         </div>
 
+                        <!-- CHUYỂN KHOẢN QR -->
                         <div class="qr-box" id="qrGroup">
-                            <div class="qr-placeholder"><div style="font-size:2rem;">⬛</div><div>QR Ngân hàng<br>VietQR</div></div>
-                            <div class="fw-bold text-primary small" id="qrAmount">Số tiền: 0 ₫</div>
-                            <div class="text-muted" style="font-size:0.75rem;">STK: 1234 5678 — Nguyễn Văn A</div>
+                            <div class="fw-bold text-primary small mb-1" id="qrAmount">Số tiền: 0 ₫</div>
+                            <div class="qr-image-wrap">
+                                <img id="qrImage" src="" alt="QR Chuyển khoản" onerror="this.src='';this.alt='Chưa cấu hình QR';">
+                            </div>
+                            <div class="text-muted" style="font-size:0.75rem;">STK: 1234 5678 — Nguyễn Văn A — Vietcombank</div>
+                            <div class="qr-confirm-note">
+                                Sau khi khách chuyển khoản thành công, nhân viên xác nhận bằng nút bên dưới.
+                            </div>
                         </div>
 
+                        <!-- KẾT HỢP -->
                         <div class="cash-input-group" id="comboGroup">
                             <div class="input-group-label">Tiền mặt (₫)</div>
                             <input type="number" class="form-control form-control-sm mb-2" id="comboMat" placeholder="0" oninput="calcCombo()">
@@ -175,14 +187,13 @@
                             </div>
                         </div>
 
-                        <button class="btn btn-success w-100 mt-3" id="btnPay" onclick="openPayConfirm()" disabled>✅ Xác Nhận Thanh Toán</button>
+                        <button class="btn btn-success w-100 mt-3" id="btnPay" onclick="openPayConfirm()" disabled>Xác Nhận Thanh Toán</button>
                     </div>
                 </div>
 
                 <!-- BOX 3: Giảm giá -->
                 <div class="action-box">
                     <div class="action-box-header">
-                        <span>🎟️</span>
                         <h6 class="action-box-title">Giảm Giá</h6>
                     </div>
                     <div class="action-box-body">
@@ -192,7 +203,7 @@
                             <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.05em;">TIẾT KIỆM ĐƯỢC</div>
                             <div style="font-size:1.1rem;font-weight:800;" id="discountResultAmt">0 ₫</div>
                         </div>
-                        <button class="btn btn-warning w-100" id="btnApply" onclick="applyDiscount()" disabled>🎟️ Áp Dụng Giảm Giá</button>
+                        <button class="btn btn-warning w-100" id="btnApply" onclick="applyDiscount()" disabled>Áp Dụng Giảm Giá</button>
                     </div>
                 </div>
 
@@ -212,7 +223,8 @@
             <div class="modal-body"><div class="receipt" id="receiptContent"></div></div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                <button class="btn btn-primary" onclick="printReceipt()">🖨️ In ngay</button>
+                <button class="btn btn-outline-danger" onclick="downloadPDF()">Xuất PDF</button>
+                <button class="btn btn-primary" onclick="printReceipt()">In ngay</button>
             </div>
         </div>
     </div>
@@ -229,7 +241,7 @@
             <div class="modal-body" id="payConfirmBody"></div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button class="btn btn-success" onclick="confirmPayment()">✅ Hoàn tất</button>
+                <button class="btn btn-success" onclick="confirmPayment()">Hoàn tất</button>
             </div>
         </div>
     </div>
@@ -238,9 +250,13 @@
 <div class="toast-custom" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/role.js') }}"></script>
 <script>
 const API_BASE = '/payment';
+const BANK_ID = 'VCB';
+const ACCOUNT_NO = '1234567890';
+const ACCOUNT_NAME = 'Nguyen Van A';
 let tables = [], currentTable = null, currentOrder = null;
 let selectedVoucher = null, appliedDiscount = 0, selectedPayMethod = null, voucherCatalog = [];
 
@@ -299,6 +315,9 @@ function orderStatusLabel(s) { return { XACNHAN:'ĐÃ XÁC NHẬN', DANGPHUCVU:'
 function itemBadge(s) { return { DAPHUCVU:['badge bg-success','Đã phục vụ'], DANGLAM:['badge bg-warning text-dark','Đang làm'], CHOLAM:['badge bg-secondary','Chờ làm'] }[ns(s)] || ['badge bg-secondary','Chờ làm']; }
 function pmApi(m)   { return { cash:'TIENMAT', qr:'CHUYENKHOAN', combo:'KETHOP' }[m]||''; }
 function pmLabel(m) { return { cash:'Tiền mặt', qr:'Chuyển khoản QR', combo:'Kết hợp' }[m]||''; }
+function buildVietQrUrl(amount, addInfo = 'Thanh toan don hang') {
+    return `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-qr_only.png?amount=${encodeURIComponent(amount)}&addInfo=${encodeURIComponent(addInfo)}`;
+}
 
 // ── DATA LOADERS ──
 async function loadTables() {
@@ -330,7 +349,7 @@ function renderTables() {
         const btn = document.createElement('button');
         const occ = t.TrangThai !== 'TRONG';
         btn.className = 'table-tab' + (t.MaBan===currentTable?' active':'') + (occ?' occupied':'');
-        btn.textContent = (t.TrangThai==='TRONG'?'🟢':t.TrangThai==='DANGSUDUNG'?'🔴':'🟡') + ' ' + t.TenBan;
+        btn.textContent = t.TenBan;
         btn.onclick = () => selectTable(t.MaBan);
         w.appendChild(btn);
     });
@@ -387,13 +406,15 @@ function updateSummary(sub, disc) {
 
 // ── PRINT ──
 async function openPrintModal() {
-    if (!currentOrder){showToast('⚠️ Bàn này chưa có đơn hàng');return;}
+    if (!currentOrder){showToast('Bàn này chưa có đơn hàng');return;}
     try {
         const p = await fetchJson(`${API_BASE}/orders/${currentOrder.MaDon}/receipt`);
-        const r = p.data; if (!r){showToast('⚠️ Không lấy được dữ liệu hóa đơn');return;}
+        const r = p.data; if (!r){showToast('Không lấy được dữ liệu hóa đơn');return;}
+        const total = toNumber(r.ThanhTien, getTotal());
         const rows=(r.ChiTiet||[]).map(i=>`<div class="receipt-row"><span class="r-name">${escapeHtml(i.TenMon)}</span><span class="r-qty">x${toNumber(i.SoLuong)}</span><span class="r-price">${fmt(toNumber(i.ThanhTienMon,toNumber(i.SoLuong)*toNumber(i.DonGia)))}</span></div>`).join('');
+        const qrUrl = buildVietQrUrl(total, `Thanh toan don ${r.MaDon}`);
         document.getElementById('receiptContent').innerHTML=`
-            <div class="receipt-logo">☕ Cafe G7</div>
+            <div class="receipt-logo">Cafe G7</div>
             <div class="receipt-center">123 Đường ABC, Quận 1, TP.HCM</div>
             <div class="receipt-center">ĐT: 0900 000 000</div>
             <hr class="receipt-divider">
@@ -406,21 +427,156 @@ async function openPrintModal() {
             <div class="receipt-row"><span>Tạm tính:</span><span>${fmt(toNumber(r.TongTien,getSubtotal()))}</span></div>
             ${toNumber(r.GiamGia)>0?`<div class="receipt-row"><span>Giảm giá:</span><span>−${fmt(toNumber(r.GiamGia))}</span></div>`:''}
             <hr class="receipt-divider">
-            <div class="receipt-total"><span>TỔNG CỘNG:</span><span>${fmt(toNumber(r.ThanhTien,getTotal()))}</span></div>
+            <div class="receipt-total"><span>TỔNG CỘNG:</span><span>${fmt(total)}</span></div>
+            <div class="receipt-qr-wrap">
+                <div style="font-weight:700;margin-bottom:6px;">Quét QR để chuyển khoản</div>
+                <img src="${qrUrl}" alt="QR chuyển khoản">
+                <div class="receipt-center" style="margin-top:6px;">Số tiền: ${fmt(total)}</div>
+                <div class="receipt-center">STK: ${ACCOUNT_NO} — ${ACCOUNT_NAME} — ${BANK_ID}</div>
+            </div>
             <hr class="receipt-divider">
             <div class="receipt-center" style="margin-top:6px;">*** CẢM ƠN QUÝ KHÁCH ***</div>
             <div class="receipt-center">Hẹn gặp lại!</div>`;
         openModal('printModal');
-    } catch(e){showToast('⚠️ '+e.message);}
+    } catch(e){showToast(e.message);}
 }
 
 function printReceipt() {
-    const content=document.getElementById('receiptContent').innerHTML;
-    const w=window.open('','_blank','width=400,height=600');
-    if(!w){showToast('⚠️ Trình duyệt đã chặn cửa sổ in');return;}
-    w.document.write(`<html><head><title>Hóa Đơn</title><style>body{font-family:'Courier New',monospace;font-size:13px;padding:16px;line-height:1.6;}.receipt-logo{text-align:center;font-size:18px;font-weight:bold;margin-bottom:4px;}.receipt-center{text-align:center;color:#666;font-size:12px;}.receipt-divider{border:none;border-top:1px dashed #ccc;margin:8px 0;}.receipt-row{display:flex;justify-content:space-between;gap:8px;}.r-name{flex:1}.r-qty{width:30px;text-align:center}.r-price{width:80px;text-align:right;}.receipt-total{display:flex;justify-content:space-between;font-weight:bold;font-size:14px;}</style></head><body>${content}</body></html>`);
-    w.document.close(); w.focus(); setTimeout(()=>w.print(),400);
-    closeModal('printModal'); showToast('✅ Đã gửi lệnh in hóa đơn');
+    const content = document.getElementById('receiptContent').innerHTML;
+
+    const printWindow = window.open('', '', 'width=320,height=800');
+
+    if (!printWindow) {
+        showToast('Trình duyệt đã chặn cửa sổ in');
+        return;
+    }
+
+    printWindow.document.write(`
+    <html>
+    <head>
+        <title>Hóa Đơn Tạm Tính</title>
+
+        <style>
+            @page {
+                size: 80mm auto;
+                margin: 0;
+            }
+
+            body {
+                width: 80mm;
+                margin: 0 auto;
+                padding: 3mm;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+
+            .receipt-logo{
+                text-align:center;
+                font-size:16px;
+                font-weight:bold;
+                margin-bottom:4px;
+            }
+
+            .receipt-center{
+                text-align:center;
+                font-size:11px;
+            }
+
+            .receipt-divider{
+                border:none;
+                border-top:1px dashed #000;
+                margin:6px 0;
+            }
+
+            .receipt-row{
+                display:flex;
+                justify-content:space-between;
+                gap:4px;
+            }
+
+            .r-name{
+                flex:1;
+                word-break:break-word;
+            }
+
+            .r-qty{
+                width:28px;
+                text-align:center;
+            }
+
+            .r-price{
+                width:65px;
+                text-align:right;
+            }
+
+            .receipt-total{
+                display:flex;
+                justify-content:space-between;
+                font-weight:bold;
+                font-size:14px;
+            }
+
+            .receipt-qr-wrap{
+                text-align:center;
+                margin-top:8px;
+            }
+
+            .receipt-qr-wrap img{
+                width:140px;
+                height:140px;
+            }
+        </style>
+    </head>
+
+    <body>
+        ${content}
+    </body>
+    </html>
+    `);
+
+    printWindow.document.close();
+
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+    }, 500);
+
+    closeModal('printModal');
+}
+
+function downloadPDF() {
+    const element = document.getElementById('receiptContent');
+
+    if (!element || !currentTable) {
+        showToast('Không có nội dung để xuất PDF');
+        return;
+    }
+
+    const opt = {
+        margin: [2, 2, 2, 2],
+        filename: `HoaDonTamTinh_Ban${currentTable}.pdf`,
+        image: {
+            type: 'jpeg',
+            quality: 1
+        },
+        html2canvas: {
+            scale: 3,
+            useCORS: true
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: [120, 200],
+            orientation: 'portrait'
+        }
+    };
+
+    html2pdf()
+        .set(opt)
+        .from(element)
+        .save();
+
+    showToast('Đang xuất PDF...');
 }
 
 // ── PAYMENT ──
@@ -433,13 +589,44 @@ function resetPayUI() {
     const b=document.getElementById('btnPay'); if(b) b.disabled=true;
 }
 
+function fillQuickCash(total) {
+    const wrap = document.getElementById('quickCashBtns');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const rounds = [];
+    const units = [1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000];
+    units.forEach(u => {
+        const v = Math.ceil(total / u) * u;
+        if (v >= total && !rounds.includes(v) && rounds.length < 4) rounds.push(v);
+    });
+    if (!rounds.includes(total)) rounds.unshift(total);
+    rounds.slice(0, 5).forEach(v => {
+        const btn = document.createElement('button');
+        btn.textContent = v === total ? 'Đúng tiền' : fmt(v);
+        btn.onclick = () => {
+            document.getElementById('cashInput').value = v;
+            calcChange();
+        };
+        wrap.appendChild(btn);
+    });
+}
+
 function selectPayMethod(method) {
-    if (!currentOrder||!isActive(currentOrder)){showToast('⚠️ Bàn này chưa có đơn hàng');return;}
+    if (!currentOrder||!isActive(currentOrder)){showToast('Bàn này chưa có đơn hàng');return;}
     selectedPayMethod=method;
     ['cash','qr','combo'].forEach(m=>document.getElementById('pm-'+m)?.classList.toggle('selected',m===method));
     document.getElementById('cashGroup')?.classList.toggle('visible',method==='cash');
     document.getElementById('qrGroup')?.classList.toggle('visible',method==='qr');
     document.getElementById('comboGroup')?.classList.toggle('visible',method==='combo');
+
+    if (method === 'cash') {
+        const total = getTotal();
+        const inp = document.getElementById('cashInput');
+        if (inp) { inp.value = total; }
+        fillQuickCash(total);
+        calcChange();
+    }
+
     updateQRAmount(); syncPayBtn();
 }
 
@@ -447,16 +634,26 @@ function calcChange() {
     const c=getCash()-getTotal(), el=document.getElementById('changeAmount');
     if(el){el.textContent=c>=0?fmt(c):'— ₫'; el.className=c>=0?'fw-bold text-success':'fw-bold text-danger';} syncPayBtn();
 }
-function updateQRAmount() { const el=document.getElementById('qrAmount'); if(el) el.textContent='Số tiền: '+fmt(getTotal()); }
+
+function updateQRAmount() {
+    const total = getTotal();
+    const el=document.getElementById('qrAmount');
+    if(el) el.textContent='Số tiền: '+fmt(total);
+    const qrImg = document.getElementById('qrImage');
+    if (qrImg && total > 0) {
+        qrImg.src = buildVietQrUrl(total, 'Thanh toan don hang');
+    }
+}
+
 function calcCombo() {
     const r=getTotal()-getCMat()-getCBank(), el=document.getElementById('comboRemain');
     if(el){el.textContent=r<=0?'Đủ tiền':fmt(r)+' thiếu'; el.className=r<=0?'fw-bold text-success':'fw-bold text-danger';} syncPayBtn();
 }
 
 function openPayConfirm() {
-    if (!currentOrder||!isActive(currentOrder)){showToast('⚠️ Bàn này chưa có đơn hàng');return;}
-    if (!selectedPayMethod){showToast('⚠️ Vui lòng chọn hình thức thanh toán');return;}
-    if (!isPayValid()){showToast('⚠️ Số tiền thanh toán chưa đủ');return;}
+    if (!currentOrder||!isActive(currentOrder)){showToast('Bàn này chưa có đơn hàng');return;}
+    if (!selectedPayMethod){showToast('Vui lòng chọn hình thức thanh toán');return;}
+    if (!isPayValid()){showToast('Số tiền thanh toán chưa đủ');return;}
     const total=getTotal(); let extra='';
     if (selectedPayMethod==='cash'){const ch=getCash()-total; extra=`<div class="d-flex justify-content-between small text-muted mt-2"><span>Khách đưa:</span><span class="fw-bold">${fmt(getCash())}</span></div><div class="d-flex justify-content-between small text-success"><span>Tiền thối:</span><span class="fw-bold">${ch>=0?fmt(ch):'—'}</span></div>`;}
     else if (selectedPayMethod==='combo'){extra=`<div class="d-flex justify-content-between small text-muted mt-2"><span>Tiền mặt:</span><span>${fmt(getCMat())}</span></div><div class="d-flex justify-content-between small text-muted"><span>Chuyển khoản:</span><span>${fmt(getCBank())}</span></div>`;}
@@ -474,7 +671,7 @@ function openPayConfirm() {
 }
 
 async function confirmPayment() {
-    if (!currentOrder||!isActive(currentOrder)||!selectedPayMethod||!isPayValid()){showToast('⚠️ Thông tin thanh toán chưa hợp lệ');return;}
+    if (!currentOrder||!isActive(currentOrder)||!selectedPayMethod||!isPayValid()){showToast('Thông tin thanh toán chưa hợp lệ');return;}
     const total=getTotal();
     const body={phuong_thuc:pmApi(selectedPayMethod),tien_mat:0,tien_chuyen_khoan:0,ma_km:selectedVoucher?.MaKM||null,giam_gia:toNumber(appliedDiscount),vat:0};
     if(selectedPayMethod==='cash')       body.tien_mat=getCash();
@@ -482,10 +679,10 @@ async function confirmPayment() {
     else if(selectedPayMethod==='combo'){body.tien_mat=getCMat(); body.tien_chuyen_khoan=getCBank();}
     try {
         await fetchJson(`${API_BASE}/orders/${currentOrder.MaDon}/checkout`,{method:'POST',body:JSON.stringify(body)});
-        closeModal('payModal'); showToast('✅ Thanh toán thành công! Đơn hàng đã hoàn tất.');
+        closeModal('payModal'); showToast('Thanh toán thành công!');
         selectedVoucher=null; appliedDiscount=0; selectedPayMethod=null; resetPayUI();
         await refreshAll({keepSelection:true});
-    } catch(e){showToast('⚠️ '+e.message);}
+    } catch(e){showToast(e.message);}
 }
 
 // ── VOUCHER ──
@@ -512,7 +709,7 @@ function renderVouchers() {
 }
 
 function toggleVoucher(v) {
-    if (!currentOrder||!isActive(currentOrder)){showToast('⚠️ Bàn này chưa có đơn hàng');return;}
+    if (!currentOrder||!isActive(currentOrder)){showToast('Bàn này chưa có đơn hàng');return;}
     if (selectedVoucher?.MaKM===v.MaKM){selectedVoucher=null;appliedDiscount=0;}
     else { selectedVoucher=v; const s=getSubtotal(); appliedDiscount=v.LoaiKM==='PHANTRAM'?Math.round(s*v.GiaTri/100):Math.min(v.GiaTri,s); }
     renderVouchers(); syncDiscountResult(); updateSummary(getSubtotal(),appliedDiscount); updateQRAmount(); syncPayBtn();
@@ -525,21 +722,21 @@ function syncDiscountResult() {
 }
 
 async function applyDiscount() {
-    if (!currentOrder||!isActive(currentOrder)){showToast('⚠️ Bàn này chưa có đơn hàng');return;}
-    if (!selectedVoucher){showToast('⚠️ Vui lòng chọn voucher');return;}
+    if (!currentOrder||!isActive(currentOrder)){showToast('Bàn này chưa có đơn hàng');return;}
+    if (!selectedVoucher){showToast('Vui lòng chọn voucher');return;}
     try {
         const p=await fetchJson(`${API_BASE}/vouchers/apply`,{method:'POST',body:JSON.stringify({ma_code:selectedVoucher.MaCode,tong_tien:getSubtotal()})});
         const d=p.data||{}; appliedDiscount=toNumber(d.GiamGia); selectedVoucher=voucherCatalog.find(v=>v.MaKM===toNumber(d.MaKM))||selectedVoucher;
         syncDiscountResult(); updateSummary(getSubtotal(),appliedDiscount); updateQRAmount(); syncPayBtn(); renderVouchers();
-        showToast(`✅ Đã áp dụng voucher ${selectedVoucher.MaCode}`);
-    } catch(e){showToast('⚠️ '+e.message);}
+        showToast(`Đã áp dụng voucher ${selectedVoucher.MaCode}`);
+    } catch(e){showToast(e.message);}
 }
 
 // ── INIT ──
 async function init() {
     try { await refreshAll({keepSelection:false}); }
     catch(e) {
-        showToast('⚠️ '+e.message);
+        showToast(e.message);
         tables=[];currentTable=null;currentOrder=null;voucherCatalog=[];
         renderTables();renderOrder();renderVouchers();syncDiscountResult();updateQRAmount();syncPayBtn();
     }
