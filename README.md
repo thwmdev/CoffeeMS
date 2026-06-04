@@ -120,7 +120,7 @@ app/
 ### Clone project
 
 ```bash
-git clone https://github.com/<username>/CoffeeMS.git
+git clone https://github.com/thwmdev/CoffeeMS.git
 
 cd CoffeeMS
 ```
