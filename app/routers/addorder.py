@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.database import SessionLocal
+from app.database import SessionLocal, db
 from app.models.orderM import Mon
 
 mon_bp = Blueprint("mon", __name__, url_prefix="/mon")
@@ -7,10 +7,7 @@ mon_bp = Blueprint("mon", __name__, url_prefix="/mon")
 
 def get_db():
     db = SessionLocal()
-    try:
-        return db
-    finally:
-        db.close()
+    return db
 
 
 @mon_bp.route("/them-mon", methods=["POST"])

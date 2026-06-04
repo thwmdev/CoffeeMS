@@ -1,4 +1,5 @@
 from app.database.db import get_connection
+from app.security.hash import hash_password
 
 
 def get_all_accounts():
@@ -63,16 +64,22 @@ def create_account_db(data):
     cursor.close()
     conn.close()
 
+
 def reset_password_db(matk, password):
 
     conn = get_connection()
     cursor = conn.cursor()
 
+    hashed_password = hash_password(password)
+
     cursor.execute("""
         UPDATE TAIKHOAN
-        SET MatKhau=%s
-        WHERE MaTK=%s
-    """, (password, matk))
+        SET MatKhau = %s
+        WHERE MaTK = %s
+    """, (
+        hashed_password,
+        matk
+    ))
 
     conn.commit()
 

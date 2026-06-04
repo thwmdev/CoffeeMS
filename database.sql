@@ -313,13 +313,13 @@ CREATE TABLE DATBAN (
 INSERT INTO TAIKHOAN (TenDangNhap, MatKhau, VaiTro, TrangThai, DoiMK) VALUES
 ('admin', '123456', 'ADMIN', 'HOATDONG', 0),
 ('nhanvien1', '123456', 'NHANVIEN', 'HOATDONG', 0),
-('thungan1', '123456', 'THUNGAN', 'HOATDONG', 0);
+('nhanvien2', '123456', 'NHANVIEN', 'HOATDONG', 0);
 
 -- ---- NHANVIEN ----
 INSERT INTO NHANVIEN (HoTen, SDT, Email, MaTK) VALUES
-('Nguyễn Văn A', '0900000001', 'a@gmail.com', 1),
-('Trần Thị B', '0900000002', 'b@gmail.com', 2),
-('Lê Văn C', '0900000003', 'c@gmail.com', 3);
+('A', '0900000001', 'a@gmail.com', 1),
+('B', '0900000002', 'b@gmail.com', 2),
+('C', '0900000003', 'c@gmail.com', 3);
 
 -- ---- BAN ----
 INSERT INTO BAN (TenBan, SoChoNgoi, TrangThai) VALUES
