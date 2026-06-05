@@ -18,6 +18,7 @@ __pycache__/
 *.db
 *.sqlite3
 
+*.pem
 
 .DS_Store
 Thumbs.db
