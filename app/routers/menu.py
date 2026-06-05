@@ -161,6 +161,16 @@ def add_menu():
     conn = get_connection()
 
     cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+    "SELECT MaDM FROM DANHMUC WHERE MaDM = %s",
+    (ma_dm,)
+)
+
+    if not cursor.fetchone():
+        return jsonify({
+            "success": False,
+            "message": "Danh mục không tồn tại"
+        }), 400
 
     # CHECK TRÙNG
     check_sql = """
