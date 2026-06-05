@@ -29,19 +29,15 @@ function renderAccounts() {
             <td>${acc.TrangThai}</td>
 
             <td>
-
-                <button
-                    class="btn btn-danger btn-sm"
-                    onclick="deleteAccount(${acc.MaTK})">
-                    Xóa
-                </button>
-
-                <button
-                    class="btn btn-danger btn-sm"
-                    onclick="resetPassword(${acc.MaTK})">
-                    Reset MK
-                </button>
-
+                <div class="table-actions">
+                    <button class="btn-table btn-edit" onclick="updateAccountInfo(${acc.MaTK})" title="Chỉnh sửa">
+                    <i class="bi bi-pencil-square"></i>
+                    </button>
+        
+                    <button class="btn-table btn-lock" onclick="toggleLock(${acc.MaTK})" title="Khóa/Mở khóa">
+                    <i class="bi bi-lock-fill"></i>
+                    </button>
+                </div>
             </td>
 
         </tr>
@@ -83,43 +79,82 @@ async function activateAccount(id) {
 
     loadAccounts();
 }
-async function resetPassword(id) {
 
-    const password = prompt("Nhập mật khẩu mới:");
+function updateAccountInfo(id) {
+    const acc = accounts.find(a => a.MaTK === id);
 
-    if (!password) return;
+    document.getElementById("updateMaTK").value = acc.MaTK;
+    document.getElementById("updateTenDangNhap").value = acc.TenDangNhap;
+    document.getElementById("updateSDT").value = acc.SDT;
+    document.getElementById("updateEmail").value = acc.Email;
+    document.getElementById("updateMatKhau").value = "";
 
-    await fetch(`/account/reset-password/${id}`, {
+    const modal = new bootstrap.Modal(
+        document.getElementById("updateModal")
+    );
+    modal.show();
+}
+
+async function saveAccountUpdate() {
+    const id = document.getElementById("updateMaTK").value;
+
+    const body = {
+        TenDangNhap: document.getElementById("updateTenDangNhap").value,
+        SDT: document.getElementById("updateSDT").value,
+        Email: document.getElementById("updateEmail").value
+    };
+
+    const password =
+        document.getElementById("updateMatKhau").value.trim();
+
+    if (password !== "") {
+        body.MatKhau = password;
+    }
+
+    const res = await fetch(`/account/update/${id}`, {
 
         method: "PUT",
-
         headers: {
-            "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-            password
-        })
-    });
-
-    alert("Đặt lại mật khẩu thành công");
-}
-async function deleteAccount(id) {
-
-    const ok = confirm("Bạn có chắc muốn xóa tài khoản này không?");
-
-    if (!ok) return;
-
-    const res = await fetch(`/account/delete/${id}`, {
-        method: "DELETE"
+            "Content-Type": "application/json"},
+        body: JSON.stringify(body)
     });
 
     const result = await res.json();
-
     alert(result.message);
-
+    bootstrap.Modal
+        .getInstance(document.getElementById("updateModal"))
+        .hide();
     loadAccounts();
 }
+
+async function toggleLock(id) {
+
+    const user = accounts.find(a => a.MaTK === id);
+
+    let textConfirm = "";
+    if (user.TrangThai === "HOATDONG") {
+        textConfirm = "Bạn có chắc muốn khóa tài khoản này không?";
+    } else {
+        textConfirm = "Bạn có chắc muốn mở khóa tài khoản này không?";
+    }
+    const ok = confirm(textConfirm);
+    if (!ok) return;
+
+    try {
+        const res = await fetch(`/account/toggle-status/${id}`, {
+            method: "PUT"
+        });
+        const result = await res.json();
+        alert(result.message);
+        loadAccounts();
+
+    } catch (error) {
+        console.error("Lỗi khi thay đổi trạng thái tài khoản:", error);
+        alert("Có lỗi xảy ra, vui lòng thử lại!");
+    }
+}
+
+
 function logout() {
  localStorage.removeItem("token");
     window.location.href = "/";

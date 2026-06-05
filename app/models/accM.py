@@ -86,19 +86,63 @@ def reset_password_db(matk, password):
     cursor.close()
     conn.close()
 
+# Cập nhật thông tin tài khoản
+def update_account_db(matk, data):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        if data.get("MatKhau"):
+            cursor.execute("""
+                UPDATE TAIKHOAN
+                SET TenDangNhap=%s,
+                    MatKhau=%s
+                WHERE MaTK=%s
+            """, (
+                data["TenDangNhap"],
+                data["MatKhau"],
+                matk
+            ))
+
+        else:
+            cursor.execute("""
+                UPDATE TAIKHOAN
+                SET TenDangNhap=%s
+                WHERE MaTK=%s
+            """, (
+                data["TenDangNhap"],
+                matk
+            ))
+
+        cursor.execute("""
+            UPDATE NHANVIEN
+            SET SDT=%s,
+                Email=%s
+            WHERE MaTK=%s
+        """, (
+            data["SDT"],
+            data["Email"],
+            matk
+        ))
+
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
-def delete_account_db(matk):
-
+def toggle_account_status_db(matk):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
-        "DELETE FROM TAIKHOAN WHERE MaTK = %s",
+        "UPDATE TAIKHOAN SET TrangThai = IF(TrangThai = 'HOATDONG', 'KHOA', 'HOATDONG') WHERE MaTK = %s",
         (matk,)
     )
 
     conn.commit()
-
     cursor.close()
     conn.close()

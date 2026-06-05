@@ -536,6 +536,52 @@ td{
     margin-right:5px;
 }
 
+/* =========================
+   CUSTOM ACTION BUTTONS CHO TABLE TAIKHOAN
+========================= */ 
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.btn-table {
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #000000;
+}
+
+.btn-edit:hover {
+    background-color: #ffcf3e;
+    color: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(255, 152, 0, 0.2);
+}
+.btn-lock {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+.btn-lock:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+}
 
 /* =========================
    RESPONSIVE

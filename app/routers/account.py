@@ -4,8 +4,8 @@ from app.security.hash import hash_password
 from app.models.accM import (
     get_all_accounts,
     create_account_db,
-    delete_account_db,
-    reset_password_db
+    update_account_db,
+    toggle_account_status_db    
 )
 
 account_bp = Blueprint(
@@ -44,23 +44,27 @@ def create_account():
         "message": "Tạo tài khoản thành công"
     })
 
+# Cập nhật thông tin tài khoản
+@account_bp.route("/update/<int:matk>", methods=["PUT"])
+def update_account(matk):
 
-# Reset mật khẩu
-@account_bp.route("/reset-password/<int:matk>", methods=["PUT"])
-def reset_password(matk):
+    data = request.json
 
-    password = request.json["password"]
-    hashed_pw = hash_password(str(password))
-    reset_password_db(matk, hashed_pw)
+    if data.get("MatKhau"):
+        data["MatKhau"] = hash_password(data["MatKhau"])
+
+    update_account_db(matk, data)
 
     return jsonify({
-        "message": "Đặt lại mật khẩu thành công"
+        "message": "Cập nhật thông tin tài khoản thành công"
     })
-@account_bp.route("/delete/<int:matk>", methods=["DELETE"])
-def delete_account(matk):
 
-    delete_account_db(matk)
+# Khóa/Mở khóa tài khoản
+@account_bp.route("/toggle-status/<int:matk>", methods=["PUT"])
+def toggle_account_status(matk):
+
+    toggle_account_status_db(matk)
 
     return jsonify({
-        "message": "Xóa tài khoản thành công"
+        "message": "Cập nhật trạng thái tài khoản thành công"
     })
