@@ -13,7 +13,6 @@ Hệ thống hỗ trợ:
 * Thanh toán hóa đơn
 * Quản lý tài khoản nhân viên
 * Báo cáo doanh thu
-* Xác thực đăng nhập bằng JWT
 
 ## 2. Công nghệ sử dụng
 
@@ -30,10 +29,6 @@ Hệ thống hỗ trợ:
 
 * MySQL 8.0
 
-### Containerization
-
-* Docker
-* Docker Compose
 
 ## 3. Kiến trúc hệ thống
 
@@ -110,50 +105,6 @@ app/
 * Xuất PDF
 
 ## 5. Cài đặt
-## 5.1 Cài đặt bằng Docker
-
-### Yêu cầu
-
-* Docker Desktop
-* Docker Compose
-
-### Clone project
-
-```bash
-git clone https://github.com/thwmdev/CoffeeMS.git
-
-cd CoffeeMS
-```
-
-### Chạy hệ thống
-
-```bash
-docker-compose up --build
-```
-
-Sau khi chạy thành công:
-
-```text
-Flask:
-http://localhost:5000
-
-MySQL:
-localhost:3307
-```
-
-### Dừng hệ thống
-
-```bash
-docker-compose down
-```
-
-### Khởi động lại
-
-```bash
-docker-compose up
-```
-
-## 5.2. Cài đặt Local (không dùng Docker)
 
 ### Cài Python dependencies
 
@@ -190,11 +141,6 @@ database="quanlyquancafe"
 python run.py
 ```
 
-Ứng dụng chạy tại:
-
-```text
-http://localhost:5000
-```
 
 ## 9. Thành viên thực hiện
 * Huỳnh Thị Hồng Thắm (Leader)

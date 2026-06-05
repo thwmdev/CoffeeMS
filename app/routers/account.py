@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, render_template
+from app.security.hash import hash_password
 
 from app.models.accM import (
     get_all_accounts,
@@ -28,7 +29,15 @@ def get_accounts():
 def create_account():
 
     data = request.json
+    raw_password = data.get('MatKhau') or data.get('password')
+    
 
+    hashed_pw = hash_password(str(raw_password))
+    if 'MatKhau' in data:
+        data['MatKhau'] = hashed_pw
+    else:
+        data['password'] = hashed_pw
+        
     create_account_db(data)
 
     return jsonify({
@@ -41,8 +50,8 @@ def create_account():
 def reset_password(matk):
 
     password = request.json["password"]
-
-    reset_password_db(matk, password)
+    hashed_pw = hash_password(str(password))
+    reset_password_db(matk, hashed_pw)
 
     return jsonify({
         "message": "Đặt lại mật khẩu thành công"
