@@ -81,10 +81,6 @@ body{
     margin-bottom:8px;
 }
 
-.sidebar-menu {
-    visibility: hidden;
-}
-
 .sidebar-menu,
 .sidebar ul {
     list-style:none;

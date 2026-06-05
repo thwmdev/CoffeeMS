@@ -26,11 +26,11 @@ function loadMenu() {
             const total = data.length;
 
             const active = data.filter(
-                item => item.TrangThai === "ACTIVE"
+                item => item.TrangThai === "CONBAN"
             ).length;
 
             const inactive = data.filter(
-                item => item.TrangThai === "INACTIVE"
+                item => item.TrangThai === "HETBAN"
             ).length;
 
             // UPDATE CARD
@@ -61,68 +61,48 @@ loadMenu();
 // RENDER TABLE
 // =========================
 function renderMenu(data) {
-
     let html = "";
 
-    data.forEach(item => {
+    // const activeCount = data.filter(item => item.TrangThai === "CONBAN").length;
+    // const inactiveCount = data.filter(item => item.TrangThai === "HETBAN").length;
 
+    data.forEach(item => {
         html += `
         <tr>
-
             <td>${item.MaMon}</td>
-
             <td>${item.TenMon}</td>
-
             <td>${Number(item.GiaBan).toLocaleString()} đ</td>
-
             <td>${item.MoTa || ""}</td>
-
             <td>${item.TenDanhMuc}</td>
-
             <td>
-
                 <span class="${
-                    item.TrangThai === "ACTIVE"
+                    item.TrangThai === "CONBAN"
                     ? "active"
                     : "inactive"
                 }">
-
                     ${item.TrangThai}
-
                 </span>
-
             </td>
-
             <td class="d-flex gap-2">
-
                 <button
                     class="btn btn-warning btn-sm"
                     onclick="editMenu(${item.MaMon})"
                 >
                     Sửa
                 </button>
-
                 <button
                     class="btn btn-danger btn-sm"
                     onclick="deleteMenu(${item.MaMon})"
                 >
                     Xóa
                 </button>
-
                 <button
                     class="btn btn-dark btn-sm"
-                    onclick="
-                        toggleStatus(
-                            ${item.MaMon},
-                            '${item.TrangThai}'
-                        )
-                    "
+                    onclick="toggleStatus(${item.MaMon}, '${item.TrangThai}')"
                 >
                     Bật/Tắt
                 </button>
-
             </td>
-
         </tr>
         `;
     });
@@ -174,7 +154,7 @@ function resetForm() {
 
     document.getElementById("MoTa").value = "";
 
-    document.getElementById("TrangThai").value = "ACTIVE";
+    document.getElementById("TrangThai").value = "CONBAN";
 
     document.getElementById("MaDM").value = "";
 
@@ -478,9 +458,9 @@ function deleteMenu(id) {
 function toggleStatus(id, currentStatus) {
 
     const newStatus =
-        currentStatus === "ACTIVE"
-        ? "INACTIVE"
-        : "ACTIVE";
+        currentStatus === "CONBAN"
+        ? "HETBAN"
+        : "CONBAN";
 
     fetch("/menu/" + id)
 

@@ -342,6 +342,7 @@ INSERT INTO MON (TenMon, GiaBan, TrangThai, MoTa, MaDM) VALUES
 ('Trà sữa trân châu', 45000, 'CONBAN', 'Trà sữa size M', 2),
 ('Nước cam', 40000, 'CONBAN', 'Cam tươi', 3),
 ('Tiramisu', 50000, 'CONBAN', 'Bánh tiramisu', 4);
+
 INSERT INTO MON (TenMon, GiaBan, TrangThai, MoTa, MaDM) VALUES
 ('Espresso',35000,'CONBAN','Espresso nguyên chất',1),
 ('Americano',35000,'CONBAN','Cà phê pha loãng',1),
@@ -350,7 +351,6 @@ INSERT INTO MON (TenMon, GiaBan, TrangThai, MoTa, MaDM) VALUES
 ('Mocha',55000,'CONBAN','Cà phê socola',1),
 ('Cold Brew',45000,'CONBAN','Ủ lạnh 18 giờ',1),
 ('Caramel Macchiato',60000,'CONBAN','Cà phê caramel',1),
-
 ('Trà đào cam sả',55000,'CONBAN','Trà đào cam sả',2),
 ('Matcha Latte',55000,'CONBAN','Matcha Nhật Bản',2),
 ('Trà sữa matcha',50000,'CONBAN','Matcha trân châu',2),
@@ -358,15 +358,12 @@ INSERT INTO MON (TenMon, GiaBan, TrangThai, MoTa, MaDM) VALUES
 ('Trà vải',45000,'CONBAN','Trà vải lạnh',2),
 ('Hồng trà sữa',45000,'CONBAN','Hồng trà truyền thống',2),
 ('Lục trà sữa',45000,'CONBAN','Lục trà thơm',2),
-
 ('Nước ép dứa',42000,'CONBAN','Dứa tươi',3),
 ('Nước cam ép',40000,'CONBAN','Cam nguyên chất',3),
 ('Nước ép dâu',50000,'CONBAN','Dâu tây tươi',3),
 ('Nước ép việt quất',55000,'CONBAN','Việt quất nhập khẩu',3),
 ('Sinh tố dâu',55000,'CONBAN','Sinh tố dâu sữa',3),
 ('Sinh tố dứa',50000,'CONBAN','Sinh tố dứa',3),
-
-('Tiramisu',50000,'CONBAN','Bánh tiramisu',4),
 ('Bánh mousse xoài',55000,'CONBAN','Mousse xoài',4),
 ('Cheesecake',60000,'CONBAN','Bánh phô mai',4),
 ('Brownie Chocolate',50000,'CONBAN','Brownie đậm vị',4);
@@ -525,5 +522,5 @@ INSERT INTO PHIEUNHAP (MaNL, MaNV, SoLuong, GiaNhap, NhaCungCap, NgayNhap) VALUE
 
 -- ---- DATBAN ----
 INSERT INTO DATBAN (MaBan, TenKhach, SDT, GioDen, SoNguoi) VALUES
-(3, 'Phạm Văn D', '0911111111', '2026-05-30 18:00:00', 4),
-(4, 'Hoàng Thị E', '0922222222', '2026-05-30 19:30:00', 2);
+(3, 'Phạm Văn D', '0911111111', '2026-06-8 18:00:00', 4),
+(4, 'Hoàng Thị E', '0922222222', '2026-06-10 19:30:00', 2);

@@ -35,6 +35,7 @@
                 <p class="page-sub">Chọn bàn để tạo hoặc xem đơn hàng</p>
             </div>
             <div class="header-actions">
+                <button class="btn-reservation-list" onclick="openReservationListModal()">📋 Đặt bàn hôm nay</button>
                 <button class="btn-refresh" onclick="loadTables()">Làm mới</button>
             </div>
         </div>
@@ -46,7 +47,7 @@
             <div class="col-tables">
                 <div class="section-card">
                     <div class="section-header">
-                        <h2> Sơ đồ bàn</h2>
+                        <h2>Sơ đồ bàn</h2>
                         <div class="legend">
                             <span class="leg leg-empty">Trống</span>
                             <span class="leg leg-busy">Đang dùng</span>
@@ -54,7 +55,6 @@
                         </div>
                     </div>
                     <div id="tableGrid" class="table-grid">
-                        <!-- Rendered by JS -->
                         <div class="loading-pulse">Đang tải bàn...</div>
                     </div>
                 </div>
@@ -65,7 +65,7 @@
 
                 <!-- Panel chưa chọn bàn -->
                 <div id="panelEmpty" class="panel-empty">
-                    <div class="panel-empty-icon"></div>
+                    <div class="panel-empty-icon">☕</div>
                     <p>Chọn một bàn để bắt đầu</p>
                 </div>
 
@@ -79,16 +79,18 @@
                             <span id="orderStatus" class="status-badge"></span>
                         </div>
                         <div class="order-actions">
-                            <button class="btn-icon btn-transfer" title="Chuyển bàn" onclick="openTransferModal()">🔀</button>
-                            <button class="btn-icon btn-merge" title="Gộp bàn" onclick="openMergeModal()">🔗</button>
-                            <button class="btn-icon btn-cancel" title="Hủy đơn" onclick="cancelOrder()">✕</button>
+                            <button class="btn-icon btn-history"   title="Lịch sử đơn"  onclick="openHistoryModal()">🕐</button>
+                            <button class="btn-icon btn-discount"  title="Giảm giá / Ghi chú" onclick="openDiscountModal()">🏷️</button>
+                            <button class="btn-icon btn-transfer"  title="Chuyển bàn"   onclick="openTransferModal()">🔀</button>
+                            <button class="btn-icon btn-merge"     title="Gộp bàn"      onclick="openMergeModal()">🔗</button>
+                            <button class="btn-icon btn-cancel"    title="Hủy đơn"      onclick="cancelOrder()">✕</button>
                         </div>
                     </div>
 
                     <!-- Tìm kiếm món -->
                     <div class="search-area">
                         <div class="search-bar">
-                            <span class="search-icon"></span>
+                            <span class="search-icon">🔍</span>
                             <input
                                 type="text"
                                 id="searchInput"
@@ -120,24 +122,46 @@
 
                     <!-- Tổng tiền + actions -->
                     <div class="order-footer">
+                        <div class="order-subtotal-row" id="discountRow" style="display:none;">
+                            <span>Tạm tính</span>
+                            <span id="orderSubtotal" class="subtotal-amount">0 đ</span>
+                        </div>
+                        <div class="order-subtotal-row discount-line" id="discountLine" style="display:none;">
+                            <span>Giảm giá <button class="btn-remove-discount" onclick="removeDiscount()" title="Bỏ giảm giá">✕</button></span>
+                            <span id="discountAmount" class="discount-amount">0 đ</span>
+                        </div>
                         <div class="order-total">
                             <span>Tổng cộng</span>
                             <span id="orderTotal" class="total-amount">0 đ</span>
                         </div>
                         <div class="footer-actions">
                             <button class="btn-send" id="btnSend" onclick="sendToKitchen()">
-                                 Gửi bếp/bar
+                                🚀 Gửi bếp/bar
                             </button>
                         </div>
                     </div>
 
                 </div><!-- /panelOrder -->
 
+                <!-- Panel bàn đã đặt -->
+                <div id="panelReserved" style="display:none;" class="panel-reserved">
+                    <div class="panel-empty-icon">📅</div>
+                    <p id="panelReservedText">Bàn đã được đặt trước</p>
+                    <div id="reservedInfo" class="reserved-info-card"></div>
+                    <div class="reserved-actions">
+                        <button class="btn-checkin" id="btnCheckin" onclick="checkinReservation()">✅ Nhận bàn</button>
+                        <button class="btn-cancel-reservation" onclick="cancelCurrentReservation()">🗑️ Hủy đặt bàn</button>
+                    </div>
+                </div>
+
                 <!-- Panel tạo đơn mới -->
                 <div id="panelNewOrder" style="display:none;" class="panel-new-order">
-                    <div class="panel-empty-icon"></div>
+                    <div class="panel-empty-icon">🪑</div>
                     <p id="panelNewOrderText">Bàn trống, tạo đơn mới?</p>
-                    <button class="btn-create" onclick="createOrder()">+ Tạo đơn hàng</button>
+                    <div class="new-order-actions">
+                        <button class="btn-create" onclick="createOrder()">+ Tạo đơn hàng</button>
+                        <button class="btn-reserve" onclick="openReserveModal()">📅 Đặt bàn trước</button>
+                    </div>
                 </div>
 
             </div><!-- /col-order -->
@@ -148,11 +172,11 @@
 </div><!-- /wrapper -->
 
 
-<!-- ─────────────── MODAL CHUYỂN BÀN ─────────────── -->
+<!-- ═══════════ MODAL CHUYỂN BÀN ═══════════ -->
 <div id="modalTransfer" class="modal-overlay" style="display:none;">
     <div class="modal-box">
         <div class="modal-header">
-            <h3> Chuyển Bàn</h3>
+            <h3>🔀 Chuyển Bàn</h3>
             <button class="modal-close" onclick="closeModal('modalTransfer')">✕</button>
         </div>
         <div class="modal-body">
@@ -170,11 +194,11 @@
 </div>
 
 
-<!-- ─────────────── MODAL GỘP BÀN ─────────────── -->
+<!-- ═══════════ MODAL GỘP BÀN ═══════════ -->
 <div id="modalMerge" class="modal-overlay" style="display:none;">
     <div class="modal-box">
         <div class="modal-header">
-            <h3> Gộp Bàn</h3>
+            <h3>🔗 Gộp Bàn</h3>
             <button class="modal-close" onclick="closeModal('modalMerge')">✕</button>
         </div>
         <div class="modal-body">
@@ -192,11 +216,11 @@
 </div>
 
 
-<!-- ─────────────── MODAL GHI CHÚ ─────────────── -->
+<!-- ═══════════ MODAL GHI CHÚ MÓN ═══════════ -->
 <div id="modalNote" class="modal-overlay" style="display:none;">
     <div class="modal-box modal-sm">
         <div class="modal-header">
-            <h3> Ghi chú món</h3>
+            <h3>📝 Ghi chú món</h3>
             <button class="modal-close" onclick="closeModal('modalNote')">✕</button>
         </div>
         <div class="modal-body">
@@ -206,6 +230,196 @@
         <div class="modal-footer">
             <button class="btn-modal-cancel" onclick="closeModal('modalNote')">Hủy</button>
             <button class="btn-modal-confirm" onclick="confirmNote()">Lưu ghi chú</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════ MODAL GIẢM GIÁ & GHI CHÚ ĐƠN ← MỚI ═══════════ -->
+<div id="modalDiscount" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-md">
+        <div class="modal-header">
+            <h3>🏷️ Chỉnh sửa đơn hàng</h3>
+            <button class="modal-close" onclick="closeModal('modalDiscount')">✕</button>
+        </div>
+        <div class="modal-body">
+            <!-- Thông tin tổng quan -->
+            <div class="discount-summary">
+                <div class="ds-row">
+                    <span class="ds-label">Tạm tính</span>
+                    <span id="dsTongTien" class="ds-value">0 đ</span>
+                </div>
+            </div>
+
+            <!-- Loại giảm giá -->
+            <div class="discount-type-tabs">
+                <button class="dt-tab active" onclick="switchDiscountType('amount')" id="tabAmount">Số tiền cố định</button>
+                <button class="dt-tab" onclick="switchDiscountType('percent')" id="tabPercent">Phần trăm (%)</button>
+            </div>
+
+            <!-- Input giảm tiền -->
+            <div id="discountAmountInput">
+                <label class="modal-label">Số tiền giảm (đ)</label>
+                <input type="number" id="discountValue" class="modal-input" placeholder="VD: 10000" min="0" oninput="previewDiscount()">
+            </div>
+
+            <!-- Input giảm % -->
+            <div id="discountPercentInput" style="display:none;">
+                <label class="modal-label">Phần trăm giảm (%)</label>
+                <div class="percent-input-wrap">
+                    <input type="number" id="discountPercent" class="modal-input" placeholder="VD: 10" min="0" max="100" oninput="previewDiscount()">
+                    <span class="percent-sign">%</span>
+                </div>
+                <!-- Quick pick buttons -->
+                <div class="quick-picks">
+                    <button class="qp-btn" onclick="setPercent(5)">5%</button>
+                    <button class="qp-btn" onclick="setPercent(10)">10%</button>
+                    <button class="qp-btn" onclick="setPercent(15)">15%</button>
+                    <button class="qp-btn" onclick="setPercent(20)">20%</button>
+                    <button class="qp-btn" onclick="setPercent(50)">50%</button>
+                </div>
+            </div>
+
+            <!-- Preview kết quả -->
+            <div class="discount-preview" id="discountPreview" style="display:none;">
+                <div class="dp-row">
+                    <span>Giảm</span>
+                    <span id="dpGiamGia" class="dp-discount">– 0 đ</span>
+                </div>
+                <div class="dp-row dp-total">
+                    <span>Thành tiền</span>
+                    <span id="dpThanhTien" class="dp-final">0 đ</span>
+                </div>
+            </div>
+
+            <!-- Ghi chú đơn -->
+            <label class="modal-label" style="margin-top:16px;">Ghi chú đơn hàng (tuỳ chọn)</label>
+            <textarea id="orderNoteContent" class="modal-textarea" placeholder="VD: khách VIP, sinh nhật, ưu tiên phục vụ..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalDiscount')">Hủy</button>
+            <button class="btn-modal-confirm" onclick="confirmDiscount()">Áp dụng</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════ MODAL LỊCH SỬ ĐƠN ← MỚI ═══════════ -->
+<div id="modalHistory" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-lg">
+        <div class="modal-header">
+            <h3>🕐 Lịch sử đơn hàng</h3>
+            <button class="modal-close" onclick="closeModal('modalHistory')">✕</button>
+        </div>
+        <div class="modal-body modal-body-scroll">
+            <div id="historyList" class="history-list">
+                <div class="loading-pulse">Đang tải...</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalHistory')">Đóng</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════ MODAL ĐẶT BÀN ← MỚI ═══════════ -->
+<div id="modalReserve" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-md">
+        <div class="modal-header">
+            <h3>📅 Đặt bàn trước</h3>
+            <button class="modal-close" onclick="closeModal('modalReserve')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="reserve-table-info" id="reserveTableInfo"></div>
+
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label class="modal-label">Tên khách hàng <span class="required">*</span></label>
+                    <input type="text" id="reserveTenKhach" class="modal-input" placeholder="Nguyễn Văn A">
+                </div>
+                <div class="form-group">
+                    <label class="modal-label">Số điện thoại <span class="required">*</span></label>
+                    <input type="tel" id="reserveSDT" class="modal-input" placeholder="0900000000">
+                </div>
+            </div>
+
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label class="modal-label">Giờ đến <span class="required">*</span></label>
+                    <input type="datetime-local" id="reserveGioDen" class="modal-input">
+                </div>
+                <div class="form-group">
+                    <label class="modal-label">Số người <span class="required">*</span></label>
+                    <input type="number" id="reserveSoNguoi" class="modal-input" min="1" value="2">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalReserve')">Hủy</button>
+            <button class="btn-modal-confirm btn-reserve-confirm" onclick="confirmReserve()">📅 Xác nhận đặt</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════ MODAL DANH SÁCH ĐẶT BÀN ← MỚI ═══════════ -->
+<div id="modalReservationList" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-xl">
+        <div class="modal-header">
+            <h3>📋 Danh sách đặt bàn</h3>
+            <button class="modal-close" onclick="closeModal('modalReservationList')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="rl-toolbar">
+                <input type="date" id="rlDate" class="modal-input rl-date-input" onchange="loadReservationList()">
+                <button class="btn-rl-today" onclick="setRlToday()">Hôm nay</button>
+                <button class="btn-rl-all" onclick="loadAllReservations()">Tất cả</button>
+            </div>
+            <div id="reservationListContent" class="reservation-list-content">
+                <div class="loading-pulse">Đang tải...</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalReservationList')">Đóng</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════ MODAL SỬA ĐẶT BÀN ← MỚI ═══════════ -->
+<div id="modalEditReservation" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-md">
+        <div class="modal-header">
+            <h3>✏️ Sửa đặt bàn</h3>
+            <button class="modal-close" onclick="closeModal('modalEditReservation')">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editReserveMaDatBan">
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label class="modal-label">Tên khách hàng</label>
+                    <input type="text" id="editReserveTenKhach" class="modal-input">
+                </div>
+                <div class="form-group">
+                    <label class="modal-label">Số điện thoại</label>
+                    <input type="tel" id="editReserveSDT" class="modal-input">
+                </div>
+            </div>
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label class="modal-label">Giờ đến</label>
+                    <input type="datetime-local" id="editReserveGioDen" class="modal-input">
+                </div>
+                <div class="form-group">
+                    <label class="modal-label">Số người</label>
+                    <input type="number" id="editReserveSoNguoi" class="modal-input" min="1">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalEditReservation')">Hủy</button>
+            <button class="btn-modal-confirm" onclick="confirmEditReservation()">Lưu thay đổi</button>
         </div>
     </div>
 </div>

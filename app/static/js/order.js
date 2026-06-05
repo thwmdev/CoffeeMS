@@ -2,21 +2,25 @@
  * order.js  –  Gọi Món & Quản Lý Bàn
  * ─────────────────────────────────────
  * State:
- *   tables[]       – danh sách bàn từ API
- *   selectedTable  – bàn đang chọn { MaBan, TenBan, TrangThai, MaDon }
- *   currentOrder   – đơn hàng đang xem { MaDon, TrangThai, ChiTiet[], TongTien, ... }
- *   categories[]   – danh mục món
- *   searchTimer    – debounce timer
- *   MA_NV          – mock nhân viên (thay bằng session thực tế)
+ *   tables[]           – danh sách bàn từ API
+ *   selectedTable      – bàn đang chọn
+ *   currentOrder       – đơn hàng đang xem
+ *   currentReservation – đặt bàn của bàn đang chọn (nếu có)
+ *   categories[]       – danh mục món
+ *   searchTimer        – debounce timer
+ *   discountType       – 'amount' | 'percent'
+ *   MA_NV              – mock nhân viên
  */
 
 const MA_NV = 2;  // TODO: lấy từ session / localStorage
 
-let tables         = [];
-let selectedTable  = null;
-let currentOrder   = null;
-let categories     = [];
-let searchTimer    = null;
+let tables             = [];
+let selectedTable      = null;
+let currentOrder       = null;
+let currentReservation = null;
+let categories         = [];
+let searchTimer        = null;
+let discountType       = 'amount';
 
 
 // ═══════════════════════════════════════════════════
@@ -26,6 +30,7 @@ let searchTimer    = null;
 document.addEventListener("DOMContentLoaded", () => {
     loadTables();
     loadCategories();
+    setDefaultReserveDatetime();
 });
 
 
@@ -73,20 +78,21 @@ function renderTables() {
     }).join("");
 }
 
-function selectTable(maBan) {
+async function selectTable(maBan) {
     selectedTable = tables.find(t => t.MaBan === maBan) || null;
-    renderTables();  // re-render để highlight
+    renderTables();
 
     if (!selectedTable) return;
 
     if (selectedTable.TrangThai === "TRONG") {
-        // Bàn trống – hiện panel tạo đơn
         showPanel("new");
         document.getElementById("panelNewOrderText").textContent =
             `${selectedTable.TenBan} đang trống. Tạo đơn mới?`;
 
+    } else if (selectedTable.TrangThai === "DADAT") {
+        await loadReservedPanel(selectedTable.MaBan);
+
     } else if (selectedTable.MaDon) {
-        // Bàn đang dùng – load đơn
         loadOrder(selectedTable.MaDon);
 
     } else {
@@ -99,7 +105,7 @@ function mapStatusCss(s) {
 }
 
 function mapStatusIcon(s) {
-    return { TRONG: "✅", DANGSUDUNG: "🔶", DADAT: "🔵" }[s] || "❓";
+    return { TRONG: "✅", DANGSUDUNG: "🔶", DADAT: "📅" }[s] || "❓";
 }
 
 function mapStatusLabel(s) {
@@ -127,14 +133,12 @@ async function loadOrder(maDon) {
 function renderOrder() {
     if (!currentOrder) return;
 
-    // Header
-    document.getElementById("orderTitle").textContent   = currentOrder.TenBan;
+    document.getElementById("orderTitle").textContent  = currentOrder.TenBan;
     const badge = document.getElementById("orderStatus");
-    badge.textContent  = mapOrderStatus(currentOrder.TrangThai);
-    badge.className    = `status-badge status-${currentOrder.TrangThai}`;
+    badge.textContent = mapOrderStatus(currentOrder.TrangThai);
+    badge.className   = `status-badge status-${currentOrder.TrangThai}`;
 
-    // Items
-    const items = currentOrder.ChiTiet || [];
+    const items     = currentOrder.ChiTiet || [];
     const container = document.getElementById("orderItems");
     document.getElementById("orderItemCount").textContent = `${items.length} món`;
 
@@ -144,17 +148,32 @@ function renderOrder() {
         container.innerHTML = items.map(item => renderOrderItem(item)).join("");
     }
 
-    // Total
-    document.getElementById("orderTotal").textContent = fmtMoney(currentOrder.TongTien || 0);
+    const tongTien  = currentOrder.TongTien  || 0;
+    const giamGia   = currentOrder.GiamGia   || 0;
+    const thanhTien = currentOrder.ThanhTien || 0;
 
-    // Send btn
-    const btnSend = document.getElementById("btnSend");
-    const hasCholam = items.some(i => i.TrangThaiMon === "CHOLAM");
+    document.getElementById("orderTotal").textContent = fmtMoney(thanhTien);
+
+    const discountRow  = document.getElementById("discountRow");
+    const discountLine = document.getElementById("discountLine");
+
+    if (giamGia > 0) {
+        discountRow.style.display  = "flex";
+        discountLine.style.display = "flex";
+        document.getElementById("orderSubtotal").textContent  = fmtMoney(tongTien);
+        document.getElementById("discountAmount").textContent = `– ${fmtMoney(giamGia)}`;
+    } else {
+        discountRow.style.display  = "none";
+        discountLine.style.display = "none";
+    }
+
+    const btnSend    = document.getElementById("btnSend");
+    const hasCholam  = items.some(i => i.TrangThaiMon === "CHOLAM");
     btnSend.disabled = !hasCholam || currentOrder.TrangThai === "CHOTHANHTOAN";
 }
 
 function renderOrderItem(item) {
-    const isSent = item.TrangThaiMon !== "CHOLAM";
+    const isSent  = item.TrangThaiMon !== "CHOLAM";
     const noteHtml = item.GhiChu
         ? `<div class="oi-note">📝 ${escHtml(item.GhiChu)}</div>`
         : "";
@@ -262,7 +281,7 @@ async function cancelOrder() {
     if (!currentOrder) return;
 
     const lydo = prompt("Lý do hủy đơn (không bắt buộc):", "");
-    if (lydo === null) return;  // bấm Cancel
+    if (lydo === null) return;
 
     try {
         const res = await fetch(`/order/${currentOrder.MaDon}/cancel`, {
@@ -286,7 +305,200 @@ async function cancelOrder() {
 
 
 // ═══════════════════════════════════════════════════
-//  TÌM KIẾM MÓN
+//  CHỈNH SỬA ĐƠN – GIẢM GIÁ
+// ═══════════════════════════════════════════════════
+
+function openDiscountModal() {
+    if (!currentOrder) return;
+    if (currentOrder.TrangThai === "CHOTHANHTOAN") {
+        showToast("Đơn đang chờ thanh toán, không thể chỉnh sửa", "error");
+        return;
+    }
+
+    discountType = "amount";
+    switchDiscountType("amount");
+    document.getElementById("discountValue").value   = "";
+    document.getElementById("discountPercent").value = "";
+    document.getElementById("orderNoteContent").value = "";
+    document.getElementById("discountPreview").style.display = "none";
+
+    const tongTien = currentOrder.TongTien || 0;
+    const giamGia  = currentOrder.GiamGia  || 0;
+    document.getElementById("dsTongTien").textContent = fmtMoney(tongTien);
+
+    if (giamGia > 0) {
+        document.getElementById("discountValue").value = giamGia;
+        previewDiscount();
+    }
+
+    document.getElementById("modalDiscount").style.display = "flex";
+    setTimeout(() => document.getElementById("discountValue").focus(), 100);
+}
+
+function switchDiscountType(type) {
+    discountType = type;
+    document.getElementById("tabAmount").classList.toggle("active", type === "amount");
+    document.getElementById("tabPercent").classList.toggle("active", type === "percent");
+    document.getElementById("discountAmountInput").style.display  = type === "amount"  ? "block" : "none";
+    document.getElementById("discountPercentInput").style.display = type === "percent" ? "block" : "none";
+    document.getElementById("discountPreview").style.display = "none";
+    previewDiscount();
+}
+
+function setPercent(val) {
+    document.getElementById("discountPercent").value = val;
+    previewDiscount();
+}
+
+function previewDiscount() {
+    const tongTien = currentOrder ? (currentOrder.TongTien || 0) : 0;
+    if (!tongTien) return;
+
+    let giamGia = 0;
+    if (discountType === "amount") {
+        giamGia = parseFloat(document.getElementById("discountValue").value) || 0;
+    } else {
+        const pct = parseFloat(document.getElementById("discountPercent").value) || 0;
+        giamGia = Math.round(tongTien * pct / 100);
+    }
+
+    giamGia = Math.max(0, Math.min(giamGia, tongTien));
+    const thanhTien = tongTien - giamGia;
+
+    const preview = document.getElementById("discountPreview");
+    if (giamGia > 0) {
+        preview.style.display = "block";
+        document.getElementById("dpGiamGia").textContent   = `– ${fmtMoney(giamGia)}`;
+        document.getElementById("dpThanhTien").textContent = fmtMoney(thanhTien);
+    } else {
+        preview.style.display = "none";
+    }
+}
+
+async function confirmDiscount() {
+    if (!currentOrder) return;
+
+    const tongTien = currentOrder.TongTien || 0;
+    let giamGia = 0;
+
+    if (discountType === "amount") {
+        giamGia = parseFloat(document.getElementById("discountValue").value) || 0;
+    } else {
+        const pct = parseFloat(document.getElementById("discountPercent").value) || 0;
+        giamGia = Math.round(tongTien * pct / 100);
+    }
+
+    giamGia = Math.max(0, Math.min(giamGia, tongTien));
+    const ghiChu = document.getElementById("orderNoteContent").value.trim();
+
+    try {
+        const res = await fetch(`/order/${currentOrder.MaDon}/discount`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ GiamGia: giamGia, GhiChu: ghiChu || null, MaNV: MA_NV })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("🏷️ Đã cập nhật giảm giá", "success");
+        closeModal("modalDiscount");
+        await loadOrder(currentOrder.MaDon);
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+async function removeDiscount() {
+    if (!currentOrder) return;
+    if (!confirm("Bỏ giảm giá khỏi đơn này?")) return;
+
+    try {
+        const res = await fetch(`/order/${currentOrder.MaDon}/discount`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ GiamGia: 0, MaNV: MA_NV })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("Đã bỏ giảm giá", "info");
+        await loadOrder(currentOrder.MaDon);
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+
+// ═══════════════════════════════════════════════════
+//  LỊCH SỬ ĐƠN
+// ═══════════════════════════════════════════════════
+
+async function openHistoryModal() {
+    if (!currentOrder) return;
+    document.getElementById("historyList").innerHTML = `<div class="loading-pulse">Đang tải...</div>`;
+    document.getElementById("modalHistory").style.display = "flex";
+
+    try {
+        const res  = await fetch(`/order/${currentOrder.MaDon}/history`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        const list  = json.data;
+        const listEl = document.getElementById("historyList");
+
+        if (!list.length) {
+            listEl.innerHTML = `<div class="history-empty">Chưa có lịch sử thao tác</div>`;
+            return;
+        }
+
+        listEl.innerHTML = list.map(item => {
+            const icon = mapHistoryIcon(item.HanhDong);
+            const time = item.ThoiGian ? item.ThoiGian.slice(11, 16) : "";
+            const date = item.ThoiGian ? item.ThoiGian.slice(0, 10) : "";
+            return `
+            <div class="history-item">
+                <div class="hi-icon">${icon}</div>
+                <div class="hi-main">
+                    <div class="hi-action">${mapHistoryAction(item.HanhDong)}</div>
+                    <div class="hi-note">${escHtml(item.NoiDung || "")}</div>
+                    <div class="hi-meta">${escHtml(item.TenNhanVien || "NV")} · ${date} ${time}</div>
+                </div>
+            </div>`;
+        }).join("");
+
+    } catch (e) {
+        document.getElementById("historyList").innerHTML =
+            `<div class="history-empty">Lỗi: ${escHtml(e.message)}</div>`;
+    }
+}
+
+function mapHistoryIcon(action) {
+    const m = {
+        TAODON: "🆕", THEMMON: "➕", CAPNHAT: "✏️", XOAMON: "🗑️",
+        GUIBEP: "🚀", HUYDON: "❌", CHUYENBAN: "🔀", GOPBAN: "🔗",
+        GHICHU: "📝", GIAMGIA: "🏷️", THANHTOAN: "💰"
+    };
+    return m[action] || "📌";
+}
+
+function mapHistoryAction(action) {
+    const m = {
+        TAODON: "Tạo đơn",    THEMMON: "Thêm món",   CAPNHAT: "Cập nhật",
+        XOAMON: "Xóa món",    GUIBEP:  "Gửi bếp",    HUYDON:  "Hủy đơn",
+        CHUYENBAN: "Chuyển bàn", GOPBAN: "Gộp bàn",
+        GHICHU: "Ghi chú",    GIAMGIA: "Giảm giá",   THANHTOAN: "Thanh toán"
+    };
+    return m[action] || action;
+}
+
+
+// ═══════════════════════════════════════════════════
+//  TÌM KIẾM & LỌC DANH MỤC MÓN
+//  FIX 1: handleSearch – cập nhật nút X dựa trên cả q VÀ dm
+//  FIX 2: doSearch     – hiện loading trước khi fetch
+//  FIX 3: clearSearch  – reset cả filterCat khi xóa
 // ═══════════════════════════════════════════════════
 
 async function loadCategories() {
@@ -305,33 +517,43 @@ async function loadCategories() {
     } catch (_) {}
 }
 
+// FIX 1: Cập nhật nút X dựa trên cả q VÀ dm (không chỉ q như trước)
 function handleSearch() {
-    const q = document.getElementById("searchInput").value.trim();
-    document.getElementById("btnClearSearch").style.display = q ? "block" : "none";
+    const q  = document.getElementById("searchInput").value.trim();
+    const dm = document.getElementById("filterCat").value;
+    // Hiện nút X nếu có bất kỳ filter nào đang active
+    document.getElementById("btnClearSearch").style.display = (q || dm) ? "block" : "none";
     clearTimeout(searchTimer);
     searchTimer = setTimeout(doSearch, 260);
 }
 
+// FIX 2: Hiện loading indicator ngay lập tức để user biết đang fetch
 async function doSearch() {
     const q  = document.getElementById("searchInput").value.trim();
     const dm = document.getElementById("filterCat").value;
-
     const panel = document.getElementById("searchResults");
 
+    // Ẩn panel và dừng nếu không có filter nào
     if (!q && !dm) {
         panel.style.display = "none";
         panel.innerHTML = "";
         return;
     }
 
+    // Hiện loading ngay lập tức – không để user ngồi nhìn màn hình trắng
+    panel.style.display = "block";
+    panel.innerHTML = `<div class="search-empty">🔍 Đang tìm...</div>`;
+
     try {
         const url  = `/order/menu/search?q=${encodeURIComponent(q)}&dm=${dm}`;
         const res  = await fetch(url);
         const json = await res.json();
-        if (!json.success) return;
+        if (!json.success) {
+            panel.innerHTML = `<div class="search-empty">Lỗi tải dữ liệu</div>`;
+            return;
+        }
 
         const items = json.data;
-        panel.style.display = "block";
 
         if (!items.length) {
             panel.innerHTML = `<div class="search-empty">Không tìm thấy món nào</div>`;
@@ -350,14 +572,17 @@ async function doSearch() {
         `).join("");
 
     } catch (e) {
+        panel.innerHTML = `<div class="search-empty">Lỗi: ${escHtml(e.message)}</div>`;
         console.error(e);
     }
 }
 
+// FIX 3: Reset cả filterCat khi nhấn nút X, không chỉ xóa ô text
 function clearSearch() {
-    document.getElementById("searchInput").value = "";
+    document.getElementById("searchInput").value  = "";
+    document.getElementById("filterCat").value    = "";   // ← THÊM: reset dropdown danh mục
     document.getElementById("btnClearSearch").style.display = "none";
-    document.getElementById("searchResults").style.display = "none";
+    document.getElementById("searchResults").style.display  = "none";
     document.getElementById("searchResults").innerHTML = "";
 }
 
@@ -453,8 +678,8 @@ function openNoteModal(maCTDH, currentNote) {
 }
 
 async function confirmNote() {
-    const maCTDH  = document.getElementById("noteMaCTDH").value;
-    const ghiChu  = document.getElementById("noteContent").value.trim();
+    const maCTDH = document.getElementById("noteMaCTDH").value;
+    const ghiChu = document.getElementById("noteContent").value.trim();
 
     try {
         const res = await fetch(`/order/item/${maCTDH}/note`, {
@@ -584,6 +809,308 @@ async function confirmMerge() {
 
 
 // ═══════════════════════════════════════════════════
+//  ĐẶT BÀN (RESERVATION)
+// ═══════════════════════════════════════════════════
+
+function setDefaultReserveDatetime() {
+    const now = new Date();
+    now.setHours(now.getHours() + 1, 0, 0, 0);
+    const iso = now.toISOString().slice(0, 16);
+    document.getElementById("reserveGioDen").value = iso;
+    document.getElementById("reserveGioDen").min   = new Date().toISOString().slice(0, 16);
+}
+
+function openReserveModal() {
+    if (!selectedTable) return;
+
+    setDefaultReserveDatetime();
+    document.getElementById("reserveTenKhach").value = "";
+    document.getElementById("reserveSDT").value      = "";
+    document.getElementById("reserveSoNguoi").value  = Math.min(2, selectedTable.SoChoNgoi);
+
+    document.getElementById("reserveTableInfo").innerHTML = `
+        <div class="reserve-table-badge">
+            <span class="rtb-icon">🪑</span>
+            <span class="rtb-name">${escHtml(selectedTable.TenBan)}</span>
+            <span class="rtb-seats">${selectedTable.SoChoNgoi} chỗ ngồi</span>
+        </div>`;
+
+    document.getElementById("modalReserve").style.display = "flex";
+    setTimeout(() => document.getElementById("reserveTenKhach").focus(), 100);
+}
+
+async function confirmReserve() {
+    const tenKhach = document.getElementById("reserveTenKhach").value.trim();
+    const sdt      = document.getElementById("reserveSDT").value.trim();
+    const gioDen   = document.getElementById("reserveGioDen").value;
+    const soNguoi  = parseInt(document.getElementById("reserveSoNguoi").value) || 0;
+
+    if (!tenKhach) { showToast("Vui lòng nhập tên khách", "error"); return; }
+    if (!sdt)      { showToast("Vui lòng nhập số điện thoại", "error"); return; }
+    if (!gioDen)   { showToast("Vui lòng chọn giờ đến", "error"); return; }
+    if (soNguoi < 1){ showToast("Số người phải ≥ 1", "error"); return; }
+
+    const gioDenFormatted = gioDen.replace("T", " ");
+
+    try {
+        const res = await fetch("/order/reservations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                MaBan:    selectedTable.MaBan,
+                TenKhach: tenKhach,
+                SDT:      sdt,
+                GioDen:   gioDenFormatted,
+                SoNguoi:  soNguoi
+            })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("📅 " + json.message, "success");
+        closeModal("modalReserve");
+        selectedTable = null;
+        showPanel("empty");
+        await loadTables();
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+async function loadReservedPanel(maBan) {
+    showPanel("reserved");
+    currentReservation = null;
+
+    try {
+        const res  = await fetch(`/order/reservations?all=1`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        const reservations = json.data.filter(r => r.MaBan === maBan);
+        const ban = tables.find(t => t.MaBan === maBan);
+
+        document.getElementById("panelReservedText").textContent =
+            `${ban ? ban.TenBan : "Bàn"} đã được đặt trước`;
+
+        if (reservations.length === 0) {
+            document.getElementById("reservedInfo").innerHTML =
+                `<p style="color:#9ca3af;text-align:center;">Không tìm thấy thông tin đặt bàn</p>`;
+            document.getElementById("btnCheckin").style.display = "none";
+            return;
+        }
+
+        const r = reservations[0];
+        currentReservation = r;
+        document.getElementById("btnCheckin").dataset.maDatBan = r.MaDatBan;
+        document.getElementById("btnCheckin").style.display = "inline-flex";
+
+        const gioDen = r.GioDen ? r.GioDen.slice(0, 16).replace("T", " ") : "–";
+        document.getElementById("reservedInfo").innerHTML = `
+            <div class="ri-row"><span class="ri-label">👤 Khách</span>   <strong>${escHtml(r.TenKhach)}</strong></div>
+            <div class="ri-row"><span class="ri-label">📞 SĐT</span>     <strong>${escHtml(r.SDT)}</strong></div>
+            <div class="ri-row"><span class="ri-label">🕐 Giờ đến</span> <strong>${gioDen}</strong></div>
+            <div class="ri-row"><span class="ri-label">👥 Số người</span><strong>${r.SoNguoi} người</strong></div>
+            ${reservations.length > 1 ? `<div class="ri-more">+${reservations.length - 1} đặt bàn khác</div>` : ""}
+        `;
+
+    } catch (e) {
+        showToast("Lỗi tải đặt bàn: " + e.message, "error");
+    }
+}
+
+async function checkinReservation() {
+    if (!currentReservation) return;
+
+    const r = currentReservation;
+    if (!confirm(`Nhận bàn cho khách ${r.TenKhach}? Đặt bàn sẽ được xóa và đơn hàng mới sẽ được tạo.`)) return;
+
+    try {
+        const res = await fetch(`/order/reservations/${r.MaDatBan}/checkin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ MaNV: MA_NV })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("✅ " + json.message, "success");
+        currentReservation = null;
+        await loadTables();
+        await loadOrder(json.MaDon);
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+async function cancelCurrentReservation() {
+    if (!currentReservation) return;
+
+    const r = currentReservation;
+    if (!confirm(`Hủy đặt bàn của khách ${r.TenKhach}?`)) return;
+
+    try {
+        const res = await fetch(`/order/reservations/${r.MaDatBan}`, {
+            method: "DELETE"
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("🗑️ Đã hủy đặt bàn", "info");
+        currentReservation = null;
+        selectedTable = null;
+        showPanel("empty");
+        await loadTables();
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+async function openReservationListModal() {
+    setRlToday();
+    document.getElementById("modalReservationList").style.display = "flex";
+    await loadReservationList();
+}
+
+function setRlToday() {
+    document.getElementById("rlDate").value = new Date().toISOString().slice(0, 10);
+}
+
+async function loadReservationList() {
+    const date    = document.getElementById("rlDate").value;
+    const content = document.getElementById("reservationListContent");
+    content.innerHTML = `<div class="loading-pulse">Đang tải...</div>`;
+
+    try {
+        const url  = date ? `/order/reservations?date=${date}` : `/order/reservations?all=1`;
+        const res  = await fetch(url);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        renderReservationList(json.data);
+    } catch (e) {
+        content.innerHTML = `<div class="history-empty">Lỗi: ${escHtml(e.message)}</div>`;
+    }
+}
+
+async function loadAllReservations() {
+    document.getElementById("rlDate").value = "";
+    const content = document.getElementById("reservationListContent");
+    content.innerHTML = `<div class="loading-pulse">Đang tải...</div>`;
+
+    try {
+        const res  = await fetch(`/order/reservations?all=1`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        renderReservationList(json.data);
+    } catch (e) {
+        content.innerHTML = `<div class="history-empty">Lỗi: ${escHtml(e.message)}</div>`;
+    }
+}
+
+function renderReservationList(list) {
+    const content = document.getElementById("reservationListContent");
+
+    if (!list.length) {
+        content.innerHTML = `<div class="rl-empty">Không có đặt bàn nào</div>`;
+        return;
+    }
+
+    content.innerHTML = `
+        <table class="rl-table">
+            <thead>
+                <tr>
+                    <th>Bàn</th>
+                    <th>Khách hàng</th>
+                    <th>SĐT</th>
+                    <th>Giờ đến</th>
+                    <th>Số người</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                ${list.map(r => {
+                    const gioDen = r.GioDen ? r.GioDen.slice(0, 16).replace("T", " ") : "–";
+                    return `
+                    <tr>
+                        <td><span class="rl-table-badge">${escHtml(r.TenBan)}</span></td>
+                        <td><strong>${escHtml(r.TenKhach)}</strong></td>
+                        <td>${escHtml(r.SDT)}</td>
+                        <td>${gioDen}</td>
+                        <td>${r.SoNguoi} người</td>
+                        <td class="rl-actions">
+                            <button class="rl-btn-edit"   onclick="openEditReservation(${r.MaDatBan}, '${escHtml(r.TenKhach)}', '${escHtml(r.SDT)}', '${r.GioDen ? r.GioDen.slice(0,16) : ""}', ${r.SoNguoi})">✏️</button>
+                            <button class="rl-btn-delete" onclick="deleteReservationFromList(${r.MaDatBan}, '${escHtml(r.TenKhach)}')">🗑️</button>
+                        </td>
+                    </tr>`;
+                }).join("")}
+            </tbody>
+        </table>`;
+}
+
+function openEditReservation(maDatBan, tenKhach, sdt, gioDen, soNguoi) {
+    document.getElementById("editReserveMaDatBan").value  = maDatBan;
+    document.getElementById("editReserveTenKhach").value  = tenKhach;
+    document.getElementById("editReserveSDT").value       = sdt;
+    document.getElementById("editReserveGioDen").value    = gioDen;
+    document.getElementById("editReserveSoNguoi").value   = soNguoi;
+    document.getElementById("modalEditReservation").style.display = "flex";
+}
+
+async function confirmEditReservation() {
+    const maDatBan  = document.getElementById("editReserveMaDatBan").value;
+    const tenKhach  = document.getElementById("editReserveTenKhach").value.trim();
+    const sdt       = document.getElementById("editReserveSDT").value.trim();
+    const gioDenRaw = document.getElementById("editReserveGioDen").value;
+    const soNguoi   = parseInt(document.getElementById("editReserveSoNguoi").value) || 0;
+
+    if (!tenKhach || !sdt || !gioDenRaw) {
+        showToast("Vui lòng điền đầy đủ thông tin", "error");
+        return;
+    }
+
+    const gioDen = gioDenRaw.replace("T", " ");
+
+    try {
+        const res = await fetch(`/order/reservations/${maDatBan}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ TenKhach: tenKhach, SDT: sdt, GioDen: gioDen, SoNguoi: soNguoi })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("✅ Đã cập nhật đặt bàn", "success");
+        closeModal("modalEditReservation");
+        await loadReservationList();
+        await loadTables();
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+async function deleteReservationFromList(maDatBan, tenKhach) {
+    if (!confirm(`Hủy đặt bàn của khách ${tenKhach}?`)) return;
+
+    try {
+        const res = await fetch(`/order/reservations/${maDatBan}`, { method: "DELETE" });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        showToast("🗑️ Đã hủy đặt bàn", "info");
+        await loadReservationList();
+        await loadTables();
+
+    } catch (e) {
+        showToast(e.message, "error");
+    }
+}
+
+
+// ═══════════════════════════════════════════════════
 //  UI HELPERS
 // ═══════════════════════════════════════════════════
 
@@ -591,18 +1118,20 @@ function showPanel(panel) {
     document.getElementById("panelEmpty").style.display    = "none";
     document.getElementById("panelOrder").style.display    = "none";
     document.getElementById("panelNewOrder").style.display = "none";
+    document.getElementById("panelReserved").style.display = "none";
     clearSearch();
 
-    if (panel === "empty")  document.getElementById("panelEmpty").style.display    = "block";
-    if (panel === "order")  document.getElementById("panelOrder").style.display    = "flex";
-    if (panel === "new")    document.getElementById("panelNewOrder").style.display = "block";
+    if (panel === "empty")    document.getElementById("panelEmpty").style.display    = "block";
+    if (panel === "order")    document.getElementById("panelOrder").style.display    = "flex";
+    if (panel === "new")      document.getElementById("panelNewOrder").style.display = "block";
+    if (panel === "reserved") document.getElementById("panelReserved").style.display = "block";
 }
 
 function closeModal(id) {
     document.getElementById(id).style.display = "none";
 }
 
-// Close modal when clicking backdrop
+// Đóng modal khi click vùng nền tối
 document.querySelectorAll(".modal-overlay").forEach(el => {
     el.addEventListener("click", e => {
         if (e.target === el) el.style.display = "none";
@@ -613,7 +1142,7 @@ let toastTimer = null;
 function showToast(msg, type = "info") {
     const t = document.getElementById("toast");
     t.textContent = msg;
-    t.className = `toast toast-${type}`;
+    t.className   = `toast toast-${type}`;
     t.style.display = "block";
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { t.style.display = "none"; }, 3000);
@@ -625,5 +1154,9 @@ function fmtMoney(val) {
 
 function escHtml(str) {
     if (!str) return "";
-    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
 }

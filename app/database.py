@@ -1,22 +1,22 @@
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# DATABASE_URL = "mysql+mysqlconnector://root:root123@localhost/quanlyquancafe"
+DATABASE_URL = "mysql+mysqlconnector://root:123456@localhost/quanlyquancafe"
 
-# engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
-# SessionLocal = sessionmaker(
-#     autocommit=False,
-#     autoflush=False,
-#     bind=engine
-# )
+SessionLocal = sessionmaker(
+     autocommit=False,
+     autoflush=False,
+     bind=engine
+ )
 
-# Base = declarative_base()
+Base = declarative_base()
 
 
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
+def get_db():
+     db = SessionLocal()
+     try:
+         yield db
+     finally:
+         db.close()

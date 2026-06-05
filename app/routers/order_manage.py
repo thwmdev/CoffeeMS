@@ -12,12 +12,22 @@ Chức năng:
       DELETE /order/item/<ma_ctdh>      Xóa món khỏi đơn
       POST   /order/<ma_don>/send       Gửi order xuống bếp/bar
       POST   /order/<ma_don>/cancel     Hủy đơn hàng
+      PUT    /order/<ma_don>/discount   Cập nhật giảm giá & ghi chú đơn  ← MỚI
+      GET    /order/<ma_don>/history    Lịch sử thao tác đơn              ← MỚI
 
   - Quản lý trạng thái bàn
       GET    /order/tables              Lấy danh sách bàn + trạng thái
       PUT    /order/table/<ma_ban>/status   Cập nhật trạng thái bàn
       POST   /order/table/transfer      Chuyển bàn
       POST   /order/table/merge         Gộp bàn
+
+  - Đặt bàn (Reservation)            ← MỚI
+      GET    /order/reservations        Danh sách đặt bàn
+      POST   /order/reservations        Tạo đặt bàn mới
+      GET    /order/reservations/<id>   Chi tiết đặt bàn
+      PUT    /order/reservations/<id>   Cập nhật đặt bàn
+      DELETE /order/reservations/<id>   Hủy đặt bàn
+      POST   /order/reservations/<id>/checkin  Nhận bàn (DADAT → DANGSUDUNG)
 """
 
 from flask import Blueprint, request, jsonify, render_template
@@ -39,9 +49,6 @@ def order_page():
 #  GỌI MÓN & TẠO ĐƠN HÀNG
 # ═══════════════════════════════════════════════════
 
-# ─────────────────────────────────────────────
-# TẠO ĐƠN HÀNG MỚI
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/create", methods=["POST"])
 def create_order():
     """
@@ -50,7 +57,7 @@ def create_order():
     """
     data = request.json or {}
     ma_ban = data.get("MaBan")
-    ma_nv  = data.get("MaNV", 1)   # default nv đầu tiên nếu chưa có auth
+    ma_nv  = data.get("MaNV", 1)
 
     if not ma_ban:
         return jsonify({"success": False, "message": "Thiếu mã bàn"}), 400
@@ -58,13 +65,11 @@ def create_order():
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Kiểm tra bàn tồn tại
         cursor.execute("SELECT * FROM BAN WHERE MaBan = %s", (ma_ban,))
         ban = cursor.fetchone()
         if not ban:
             return jsonify({"success": False, "message": "Bàn không tồn tại"}), 404
 
-        # Kiểm tra bàn đã có đơn đang hoạt động chưa
         cursor.execute(
             """
             SELECT MaDon FROM DONHANG
@@ -82,7 +87,6 @@ def create_order():
                 "MaDon": existing["MaDon"]
             }), 400
 
-        # Tạo đơn
         now = datetime.datetime.now()
         cursor.execute(
             """
@@ -93,13 +97,11 @@ def create_order():
         )
         ma_don = cursor.lastrowid
 
-        # Cập nhật trạng thái bàn → DANGSUDUNG
         cursor.execute(
             "UPDATE BAN SET TrangThai = 'DANGSUDUNG' WHERE MaBan = %s",
             (ma_ban,)
         )
 
-        # Ghi lịch sử
         cursor.execute(
             """
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
@@ -123,9 +125,6 @@ def create_order():
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# LẤY CHI TIẾT ĐƠN HÀNG
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/<int:ma_don>", methods=["GET"])
 def get_order(ma_don):
     conn   = get_connection()
@@ -161,7 +160,6 @@ def get_order(ma_don):
         if order.get("NgayTao") and hasattr(order["NgayTao"], "strftime"):
             order["NgayTao"] = order["NgayTao"].strftime("%Y-%m-%d %H:%M:%S")
 
-        # Chuyển Decimal sang float
         for key in ("TongTien", "GiamGia", "ThanhTien"):
             if order.get(key) is not None:
                 order[key] = float(order[key])
@@ -181,16 +179,9 @@ def get_order(ma_don):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# TÌM KIẾM MÓN (dùng cho autocomplete khi gọi món)
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/menu/search", methods=["GET"])
 def search_menu():
-    """
-    GET /order/menu/search?q=ca+phe&dm=1
-    Trả danh sách món đang bán, hỗ trợ lọc theo tên & danh mục.
-    """
-    q    = request.args.get("q", "").strip()
+    q     = request.args.get("q", "").strip()
     ma_dm = request.args.get("dm")
 
     conn   = get_connection()
@@ -227,9 +218,6 @@ def search_menu():
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# LẤY DANH MỤC (cho filter)
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/menu/categories", methods=["GET"])
 def get_categories():
     conn   = get_connection()
@@ -245,15 +233,8 @@ def get_categories():
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# THÊM MÓN VÀO ĐƠN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/<int:ma_don>/add-item", methods=["POST"])
 def add_item(ma_don):
-    """
-    Body JSON: { "MaMon": int, "SoLuong": int, "GhiChu": str|null }
-    Nếu món đã có trong đơn (trạng thái CHOLAM) thì cộng thêm SoLuong.
-    """
     data     = request.json or {}
     ma_mon   = data.get("MaMon")
     so_luong = int(data.get("SoLuong", 1))
@@ -266,7 +247,6 @@ def add_item(ma_don):
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Kiểm tra đơn hàng
         cursor.execute(
             "SELECT * FROM DONHANG WHERE MaDon = %s AND TrangThai IN ('XACNHAN','DANGPHUCVU')",
             (ma_don,)
@@ -275,16 +255,14 @@ def add_item(ma_don):
         if not order:
             return jsonify({"success": False, "message": "Đơn hàng không tồn tại hoặc đã không thể chỉnh sửa"}), 404
 
-        # Lấy giá món
         cursor.execute("SELECT GiaBan, TenMon FROM MON WHERE MaMon = %s AND TrangThai = 'CONBAN'", (ma_mon,))
         mon = cursor.fetchone()
         if not mon:
             return jsonify({"success": False, "message": "Món không tồn tại hoặc đã hết bán"}), 404
 
-        don_gia  = float(mon["GiaBan"])
-        ten_mon  = mon["TenMon"]
+        don_gia = float(mon["GiaBan"])
+        ten_mon = mon["TenMon"]
 
-        # Kiểm tra món đã có trong đơn và trạng thái CHOLAM chưa
         cursor.execute(
             """
             SELECT MaCTDH, SoLuong FROM CHITIETDONHANG
@@ -296,14 +274,12 @@ def add_item(ma_don):
         existing_item = cursor.fetchone()
 
         if existing_item:
-            # Cộng thêm số lượng
             new_qty = existing_item["SoLuong"] + so_luong
             cursor.execute(
                 "UPDATE CHITIETDONHANG SET SoLuong = %s WHERE MaCTDH = %s",
                 (new_qty, existing_item["MaCTDH"])
             )
         else:
-            # Thêm dòng mới
             cursor.execute(
                 """
                 INSERT INTO CHITIETDONHANG (MaDon, MaMon, SoLuong, DonGia, GhiChu, TrangThaiMon)
@@ -312,10 +288,8 @@ def add_item(ma_don):
                 (ma_don, ma_mon, so_luong, don_gia, ghi_chu)
             )
 
-        # Tính lại TongTien
         _recalc_total(cursor, ma_don)
 
-        # Lịch sử
         cursor.execute(
             """
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
@@ -335,15 +309,8 @@ def add_item(ma_don):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# CẬP NHẬT SỐ LƯỢNG MÓN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/item/<int:ma_ctdh>/qty", methods=["PUT"])
 def update_item_qty(ma_ctdh):
-    """
-    Body JSON: { "SoLuong": int, "MaNV": int }
-    SoLuong = 0 → xóa dòng.
-    """
     data     = request.json or {}
     so_luong = int(data.get("SoLuong", 1))
     ma_nv    = data.get("MaNV", 1)
@@ -400,14 +367,8 @@ def update_item_qty(ma_ctdh):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# THÊM / SỬA GHI CHÚ MÓN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/item/<int:ma_ctdh>/note", methods=["PUT"])
 def update_item_note(ma_ctdh):
-    """
-    Body JSON: { "GhiChu": str, "MaNV": int }
-    """
     data    = request.json or {}
     ghi_chu = (data.get("GhiChu") or "").strip() or None
     ma_nv   = data.get("MaNV", 1)
@@ -447,9 +408,6 @@ def update_item_note(ma_ctdh):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# XÓA MÓN KHỎI ĐƠN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/item/<int:ma_ctdh>", methods=["DELETE"])
 def delete_item(ma_ctdh):
     ma_nv = request.args.get("MaNV", 1)
@@ -499,15 +457,8 @@ def delete_item(ma_ctdh):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# GỬI ORDER XUỐNG BẾP / BAR
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/<int:ma_don>/send", methods=["POST"])
 def send_to_kitchen(ma_don):
-    """
-    Chuyển tất cả món CHOLAM → DANGLAM và đơn hàng → DANGPHUCVU.
-    Body JSON: { "MaNV": int }
-    """
     data  = request.json or {}
     ma_nv = data.get("MaNV", 1)
 
@@ -522,7 +473,6 @@ def send_to_kitchen(ma_don):
         if not order:
             return jsonify({"success": False, "message": "Không tìm thấy đơn hoặc đơn không thể gửi"}), 404
 
-        # Kiểm tra có món CHOLAM không
         cursor.execute(
             "SELECT COUNT(*) AS cnt FROM CHITIETDONHANG WHERE MaDon = %s AND TrangThaiMon = 'CHOLAM'",
             (ma_don,)
@@ -531,19 +481,16 @@ def send_to_kitchen(ma_don):
         if cnt == 0:
             return jsonify({"success": False, "message": "Không có món nào cần gửi bếp"}), 400
 
-        # Cập nhật trạng thái món
         cursor.execute(
             "UPDATE CHITIETDONHANG SET TrangThaiMon = 'DANGLAM' WHERE MaDon = %s AND TrangThaiMon = 'CHOLAM'",
             (ma_don,)
         )
 
-        # Cập nhật trạng thái đơn
         cursor.execute(
             "UPDATE DONHANG SET TrangThai = 'DANGPHUCVU' WHERE MaDon = %s",
             (ma_don,)
         )
 
-        # Lịch sử
         cursor.execute(
             """
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
@@ -563,15 +510,8 @@ def send_to_kitchen(ma_don):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# HỦY ĐƠN HÀNG
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/<int:ma_don>/cancel", methods=["POST"])
 def cancel_order(ma_don):
-    """
-    Body JSON: { "LyDo": str, "MaNV": int }
-    Chỉ hủy được đơn ở trạng thái XACNHAN hoặc DANGPHUCVU.
-    """
     data  = request.json or {}
     ly_do = (data.get("LyDo") or "Hủy theo yêu cầu").strip()
     ma_nv = data.get("MaNV", 1)
@@ -590,13 +530,11 @@ def cancel_order(ma_don):
                 "message": f"Không thể hủy đơn ở trạng thái {order['TrangThai']}"
             }), 400
 
-        # Hủy đơn
         cursor.execute(
             "UPDATE DONHANG SET TrangThai = 'HUY' WHERE MaDon = %s",
             (ma_don,)
         )
 
-        # Giải phóng bàn nếu không còn đơn hoạt động
         cursor.execute(
             """
             SELECT COUNT(*) AS cnt FROM DONHANG
@@ -630,13 +568,118 @@ def cancel_order(ma_don):
         conn.close()
 
 
+# ─────────────────────────────────────────────
+# CẬP NHẬT GIẢM GIÁ & GHI CHÚ ĐƠN            ← MỚI
+# ─────────────────────────────────────────────
+@order_manage_bp.route("/<int:ma_don>/discount", methods=["PUT"])
+def update_order_discount(ma_don):
+    """
+    Cập nhật giảm giá trực tiếp trên đơn hàng (không qua bảng KHUYENMAI).
+    Body JSON: { "GiamGia": float, "GhiChu": str|null, "MaNV": int }
+    Chỉ áp dụng được khi đơn chưa thanh toán.
+    """
+    data     = request.json or {}
+    giam_gia = float(data.get("GiamGia", 0))
+    ghi_chu  = (data.get("GhiChu") or "").strip() or None
+    ma_nv    = data.get("MaNV", 1)
+
+    if giam_gia < 0:
+        return jsonify({"success": False, "message": "Giảm giá không được âm"}), 400
+
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT * FROM DONHANG WHERE MaDon = %s AND TrangThai IN ('XACNHAN','DANGPHUCVU','CHOTHANHTOAN')",
+            (ma_don,)
+        )
+        order = cursor.fetchone()
+        if not order:
+            return jsonify({"success": False, "message": "Không tìm thấy đơn hoặc đơn đã hoàn tất"}), 404
+
+        tong_tien = float(order["TongTien"])
+        if giam_gia > tong_tien:
+            return jsonify({"success": False, "message": "Giảm giá không được lớn hơn tổng tiền"}), 400
+
+        thanh_tien = tong_tien - giam_gia
+
+        # Cập nhật GiamGia và ThanhTien
+        # GhiChu: dùng cột GhiChu nếu bảng DONHANG có, nếu không thì bỏ qua
+        # (schema hiện tại DONHANG không có GhiChu, ta ghi vào LICHSUDONHANG)
+        cursor.execute(
+            "UPDATE DONHANG SET GiamGia = %s, ThanhTien = %s WHERE MaDon = %s",
+            (giam_gia, thanh_tien, ma_don)
+        )
+
+        old_discount = float(order["GiamGia"])
+        note = f"Cập nhật giảm giá: {int(old_discount):,}đ → {int(giam_gia):,}đ"
+        if ghi_chu:
+            note += f" | Ghi chú: {ghi_chu}"
+
+        cursor.execute(
+            """
+            INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
+            VALUES (%s, %s, 'GIAMGIA', %s, %s)
+            """,
+            (ma_don, ma_nv, note, datetime.datetime.now())
+        )
+
+        conn.commit()
+        return jsonify({
+            "success": True,
+            "message": "Đã cập nhật giảm giá",
+            "TongTien":  tong_tien,
+            "GiamGia":   giam_gia,
+            "ThanhTien": thanh_tien
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# LỊCH SỬ THAO TÁC ĐƠN                        ← MỚI
+# ─────────────────────────────────────────────
+@order_manage_bp.route("/<int:ma_don>/history", methods=["GET"])
+def get_order_history(ma_don):
+    """
+    Lấy toàn bộ lịch sử hành động của một đơn hàng.
+    """
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT LS.MaLS, LS.HanhDong, LS.NoiDung, LS.ThoiGian,
+                   NV.HoTen AS TenNhanVien
+            FROM LICHSUDONHANG LS
+            LEFT JOIN NHANVIEN NV ON LS.MaNV = NV.MaNV
+            WHERE LS.MaDon = %s
+            ORDER BY LS.ThoiGian DESC
+            """,
+            (ma_don,)
+        )
+        rows = cursor.fetchall()
+        for r in rows:
+            if r.get("ThoiGian") and hasattr(r["ThoiGian"], "strftime"):
+                r["ThoiGian"] = r["ThoiGian"].strftime("%Y-%m-%d %H:%M:%S")
+        return jsonify({"success": True, "data": rows})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 # ═══════════════════════════════════════════════════
 #  QUẢN LÝ TRẠNG THÁI BÀN
 # ═══════════════════════════════════════════════════
 
-# ─────────────────────────────────────────────
-# DANH SÁCH BÀN + TRẠNG THÁI
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/tables", methods=["GET"])
 def get_tables():
     conn   = get_connection()
@@ -669,17 +712,11 @@ def get_tables():
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# CẬP NHẬT TRẠNG THÁI BÀN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/table/<int:ma_ban>/status", methods=["PUT"])
 def update_table_status(ma_ban):
-    """
-    Body JSON: { "TrangThai": "TRONG"|"DANGSUDUNG"|"DADAT", "MaNV": int }
-    """
-    data      = request.json or {}
+    data       = request.json or {}
     trang_thai = data.get("TrangThai", "").upper()
-    ma_nv     = data.get("MaNV", 1)
+    ma_nv      = data.get("MaNV", 1)
 
     VALID_STATUS = ("TRONG", "DANGSUDUNG", "DADAT")
     if trang_thai not in VALID_STATUS:
@@ -716,20 +753,12 @@ def update_table_status(ma_ban):
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# CHUYỂN BÀN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/table/transfer", methods=["POST"])
 def transfer_table():
-    """
-    Body JSON: { "MaDon": int, "MaBanMoi": int, "MaNV": int }
-    Chuyển toàn bộ đơn hàng đang hoạt động từ bàn cũ sang bàn mới.
-    Điều kiện: bàn mới phải TRONG.
-    """
-    data      = request.json or {}
-    ma_don    = data.get("MaDon")
+    data       = request.json or {}
+    ma_don     = data.get("MaDon")
     ma_ban_moi = data.get("MaBanMoi")
-    ma_nv     = data.get("MaNV", 1)
+    ma_nv      = data.get("MaNV", 1)
 
     if not ma_don or not ma_ban_moi:
         return jsonify({"success": False, "message": "Thiếu MaDon hoặc MaBanMoi"}), 400
@@ -737,7 +766,6 @@ def transfer_table():
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Lấy đơn hàng
         cursor.execute(
             "SELECT * FROM DONHANG WHERE MaDon = %s AND TrangThai IN ('XACNHAN','DANGPHUCVU')",
             (ma_don,)
@@ -748,7 +776,6 @@ def transfer_table():
 
         ma_ban_cu = order["MaBan"]
 
-        # Kiểm tra bàn mới
         cursor.execute("SELECT * FROM BAN WHERE MaBan = %s", (ma_ban_moi,))
         ban_moi = cursor.fetchone()
         if not ban_moi:
@@ -763,17 +790,14 @@ def transfer_table():
         if ma_ban_cu == ma_ban_moi:
             return jsonify({"success": False, "message": "Bàn mới phải khác bàn cũ"}), 400
 
-        # Lấy tên bàn cũ
         cursor.execute("SELECT TenBan FROM BAN WHERE MaBan = %s", (ma_ban_cu,))
         ten_ban_cu = cursor.fetchone()["TenBan"]
 
-        # Cập nhật đơn hàng
         cursor.execute(
             "UPDATE DONHANG SET MaBan = %s WHERE MaDon = %s",
             (ma_ban_moi, ma_don)
         )
 
-        # Trạng thái bàn cũ: kiểm tra xem còn đơn không
         cursor.execute(
             """
             SELECT COUNT(*) AS cnt FROM DONHANG
@@ -788,13 +812,11 @@ def transfer_table():
                 (ma_ban_cu,)
             )
 
-        # Bàn mới → DANGSUDUNG
         cursor.execute(
             "UPDATE BAN SET TrangThai = 'DANGSUDUNG' WHERE MaBan = %s",
             (ma_ban_moi,)
         )
 
-        # Lịch sử
         cursor.execute(
             """
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
@@ -821,17 +843,9 @@ def transfer_table():
         conn.close()
 
 
-# ─────────────────────────────────────────────
-# GỘP BÀN
-# ─────────────────────────────────────────────
 @order_manage_bp.route("/table/merge", methods=["POST"])
 def merge_tables():
-    """
-    Body JSON: { "MaDonChinh": int, "MaDonPhu": int, "MaNV": int }
-    Gộp đơn phụ vào đơn chính: chuyển toàn bộ CHITIETDONHANG của đơn phụ sang đơn chính,
-    hủy đơn phụ và giải phóng bàn phụ.
-    """
-    data       = request.json or {}
+    data         = request.json or {}
     ma_don_chinh = data.get("MaDonChinh")
     ma_don_phu   = data.get("MaDonPhu")
     ma_nv        = data.get("MaNV", 1)
@@ -845,7 +859,6 @@ def merge_tables():
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Lấy đơn chính
         cursor.execute(
             "SELECT DH.*, B.TenBan FROM DONHANG DH JOIN BAN B ON DH.MaBan=B.MaBan WHERE DH.MaDon = %s AND DH.TrangThai IN ('XACNHAN','DANGPHUCVU')",
             (ma_don_chinh,)
@@ -854,7 +867,6 @@ def merge_tables():
         if not don_chinh:
             return jsonify({"success": False, "message": "Đơn chính không tồn tại hoặc không hợp lệ"}), 404
 
-        # Lấy đơn phụ
         cursor.execute(
             "SELECT DH.*, B.TenBan FROM DONHANG DH JOIN BAN B ON DH.MaBan=B.MaBan WHERE DH.MaDon = %s AND DH.TrangThai IN ('XACNHAN','DANGPHUCVU')",
             (ma_don_phu,)
@@ -865,28 +877,23 @@ def merge_tables():
 
         ma_ban_phu = don_phu["MaBan"]
 
-        # Chuyển tất cả CHITIETDONHANG của đơn phụ sang đơn chính
         cursor.execute(
             "UPDATE CHITIETDONHANG SET MaDon = %s WHERE MaDon = %s",
             (ma_don_chinh, ma_don_phu)
         )
 
-        # Tính lại tổng tiền đơn chính
         _recalc_total(cursor, ma_don_chinh)
 
-        # Hủy đơn phụ
         cursor.execute(
             "UPDATE DONHANG SET TrangThai = 'HUY' WHERE MaDon = %s",
             (ma_don_phu,)
         )
 
-        # Giải phóng bàn phụ
         cursor.execute(
             "UPDATE BAN SET TrangThai = 'TRONG' WHERE MaBan = %s",
             (ma_ban_phu,)
         )
 
-        # Lịch sử
         now = datetime.datetime.now()
         noi_dung = f"Gộp {don_phu['TenBan']} vào {don_chinh['TenBan']}"
         for ma_don_log in (ma_don_chinh, ma_don_phu):
@@ -902,6 +909,399 @@ def merge_tables():
         return jsonify({
             "success": True,
             "message": f"Đã gộp {don_phu['TenBan']} vào {don_chinh['TenBan']}"
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# ═══════════════════════════════════════════════════
+#  ĐẶT BÀN (RESERVATION)  ← MỚI
+# ═══════════════════════════════════════════════════
+
+@order_manage_bp.route("/reservations", methods=["GET"])
+def get_reservations():
+    """
+    Lấy danh sách đặt bàn.
+    Query params: ?date=YYYY-MM-DD (lọc theo ngày đến, mặc định hôm nay)
+                  ?all=1 (lấy tất cả)
+    """
+    get_all  = request.args.get("all", "0") == "1"
+    date_str = request.args.get("date", datetime.date.today().isoformat())
+
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        if get_all:
+            cursor.execute(
+                """
+                SELECT DB.*, B.TenBan, B.SoChoNgoi, B.TrangThai AS TrangThaiBan
+                FROM DATBAN DB
+                JOIN BAN B ON DB.MaBan = B.MaBan
+                ORDER BY DB.GioDen ASC
+                """
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT DB.*, B.TenBan, B.SoChoNgoi, B.TrangThai AS TrangThaiBan
+                FROM DATBAN DB
+                JOIN BAN B ON DB.MaBan = B.MaBan
+                WHERE DATE(DB.GioDen) = %s
+                ORDER BY DB.GioDen ASC
+                """,
+                (date_str,)
+            )
+        rows = cursor.fetchall()
+        for r in rows:
+            if r.get("GioDen") and hasattr(r["GioDen"], "strftime"):
+                r["GioDen"] = r["GioDen"].strftime("%Y-%m-%d %H:%M:%S")
+        return jsonify({"success": True, "data": rows})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@order_manage_bp.route("/reservations", methods=["POST"])
+def create_reservation():
+    """
+    Tạo đặt bàn mới.
+    Body JSON: {
+        "MaBan":    int,
+        "TenKhach": str,
+        "SDT":      str,
+        "GioDen":   "YYYY-MM-DD HH:MM",
+        "SoNguoi":  int
+    }
+    """
+    data      = request.json or {}
+    ma_ban    = data.get("MaBan")
+    ten_khach = (data.get("TenKhach") or "").strip()
+    sdt       = (data.get("SDT") or "").strip()
+    gio_den   = data.get("GioDen")
+    so_nguoi  = int(data.get("SoNguoi", 1))
+
+    # Validate
+    if not ma_ban:
+        return jsonify({"success": False, "message": "Thiếu mã bàn"}), 400
+    if not ten_khach:
+        return jsonify({"success": False, "message": "Thiếu tên khách"}), 400
+    if not sdt:
+        return jsonify({"success": False, "message": "Thiếu số điện thoại"}), 400
+    if not gio_den:
+        return jsonify({"success": False, "message": "Thiếu giờ đến"}), 400
+    if so_nguoi < 1:
+        return jsonify({"success": False, "message": "Số người phải ≥ 1"}), 400
+
+    try:
+        gio_den_dt = datetime.datetime.strptime(gio_den, "%Y-%m-%d %H:%M")
+    except ValueError:
+        return jsonify({"success": False, "message": "Định dạng giờ đến không hợp lệ (YYYY-MM-DD HH:MM)"}), 400
+
+    if gio_den_dt <= datetime.datetime.now():
+        return jsonify({"success": False, "message": "Giờ đến phải là thời điểm trong tương lai"}), 400
+
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Kiểm tra bàn tồn tại
+        cursor.execute("SELECT * FROM BAN WHERE MaBan = %s", (ma_ban,))
+        ban = cursor.fetchone()
+        if not ban:
+            return jsonify({"success": False, "message": "Bàn không tồn tại"}), 404
+
+        # Kiểm tra sức chứa
+        if so_nguoi > ban["SoChoNgoi"]:
+            return jsonify({
+                "success": False,
+                "message": f"Bàn chỉ có {ban['SoChoNgoi']} chỗ, không đủ cho {so_nguoi} người"
+            }), 400
+
+        # Kiểm tra trùng lịch (±2 giờ với đặt bàn hiện có)
+        cursor.execute(
+            """
+            SELECT MaDatBan FROM DATBAN
+            WHERE MaBan = %s
+              AND ABS(TIMESTAMPDIFF(MINUTE, GioDen, %s)) < 120
+            LIMIT 1
+            """,
+            (ma_ban, gio_den_dt)
+        )
+        conflict = cursor.fetchone()
+        if conflict:
+            return jsonify({
+                "success": False,
+                "message": "Bàn này đã có đặt chỗ trong khung giờ tương tự (±2 giờ)"
+            }), 400
+
+        # Tạo đặt bàn
+        cursor.execute(
+            """
+            INSERT INTO DATBAN (MaBan, TenKhach, SDT, GioDen, SoNguoi)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (ma_ban, ten_khach, sdt, gio_den_dt, so_nguoi)
+        )
+        ma_dat_ban = cursor.lastrowid
+
+        # Đánh dấu bàn → DADAT (nếu bàn đang TRONG)
+        if ban["TrangThai"] == "TRONG":
+            cursor.execute(
+                "UPDATE BAN SET TrangThai = 'DADAT' WHERE MaBan = %s",
+                (ma_ban,)
+            )
+
+        conn.commit()
+        return jsonify({
+            "success": True,
+            "message": f"Đã đặt {ban['TenBan']} cho khách {ten_khach}",
+            "MaDatBan": ma_dat_ban
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@order_manage_bp.route("/reservations/<int:ma_dat_ban>", methods=["GET"])
+def get_reservation(ma_dat_ban):
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT DB.*, B.TenBan, B.SoChoNgoi, B.TrangThai AS TrangThaiBan
+            FROM DATBAN DB
+            JOIN BAN B ON DB.MaBan = B.MaBan
+            WHERE DB.MaDatBan = %s
+            """,
+            (ma_dat_ban,)
+        )
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"success": False, "message": "Không tìm thấy đặt bàn"}), 404
+
+        if row.get("GioDen") and hasattr(row["GioDen"], "strftime"):
+            row["GioDen"] = row["GioDen"].strftime("%Y-%m-%d %H:%M:%S")
+
+        return jsonify({"success": True, "data": row})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@order_manage_bp.route("/reservations/<int:ma_dat_ban>", methods=["PUT"])
+def update_reservation(ma_dat_ban):
+    """
+    Cập nhật thông tin đặt bàn.
+    Body JSON: { "TenKhach", "SDT", "GioDen", "SoNguoi" } (tất cả đều optional)
+    """
+    data      = request.json or {}
+    ten_khach = (data.get("TenKhach") or "").strip() or None
+    sdt       = (data.get("SDT") or "").strip() or None
+    gio_den   = data.get("GioDen")
+    so_nguoi  = data.get("SoNguoi")
+
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT DB.*, B.SoChoNgoi
+            FROM DATBAN DB
+            JOIN BAN B ON DB.MaBan = B.MaBan
+            WHERE DB.MaDatBan = %s
+            """,
+            (ma_dat_ban,)
+        )
+        dat_ban = cursor.fetchone()
+        if not dat_ban:
+            return jsonify({"success": False, "message": "Không tìm thấy đặt bàn"}), 404
+
+        # Áp dụng thay đổi
+        new_ten   = ten_khach or dat_ban["TenKhach"]
+        new_sdt   = sdt or dat_ban["SDT"]
+        new_sl    = int(so_nguoi) if so_nguoi is not None else dat_ban["SoNguoi"]
+
+        if new_sl > dat_ban["SoChoNgoi"]:
+            return jsonify({
+                "success": False,
+                "message": f"Bàn chỉ có {dat_ban['SoChoNgoi']} chỗ"
+            }), 400
+
+        if gio_den:
+            try:
+                new_gio_den = datetime.datetime.strptime(gio_den, "%Y-%m-%d %H:%M")
+            except ValueError:
+                return jsonify({"success": False, "message": "Định dạng giờ không hợp lệ"}), 400
+        else:
+            new_gio_den = dat_ban["GioDen"]
+
+        cursor.execute(
+            """
+            UPDATE DATBAN
+            SET TenKhach = %s, SDT = %s, GioDen = %s, SoNguoi = %s
+            WHERE MaDatBan = %s
+            """,
+            (new_ten, new_sdt, new_gio_den, new_sl, ma_dat_ban)
+        )
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã cập nhật đặt bàn"})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@order_manage_bp.route("/reservations/<int:ma_dat_ban>", methods=["DELETE"])
+def cancel_reservation(ma_dat_ban):
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT * FROM DATBAN WHERE MaDatBan = %s", (ma_dat_ban,))
+        dat_ban = cursor.fetchone()
+        if not dat_ban:
+            return jsonify({"success": False, "message": "Không tìm thấy đặt bàn"}), 404
+
+        ma_ban = dat_ban["MaBan"]
+
+        cursor.execute("DELETE FROM DATBAN WHERE MaDatBan = %s", (ma_dat_ban,))
+
+        # ✅ FIX: Dùng cursor mới để tránh conflict sau DELETE
+        cursor2 = conn.cursor(dictionary=True)
+
+        cursor2.execute(
+            "SELECT COUNT(*) AS cnt FROM DATBAN WHERE MaBan = %s",
+            (ma_ban,)
+        )
+        remaining = cursor2.fetchone()["cnt"]
+
+        cursor2.execute(
+            """
+            SELECT COUNT(*) AS cnt FROM DONHANG
+            WHERE MaBan = %s AND TrangThai IN ('XACNHAN','DANGPHUCVU','CHOTHANHTOAN')
+            """,
+            (ma_ban,)
+        )
+        active_orders = cursor2.fetchone()["cnt"]
+        cursor2.close()
+
+        if remaining == 0 and active_orders == 0:
+            cursor.execute(
+                "UPDATE BAN SET TrangThai = 'TRONG' WHERE MaBan = %s",
+                #  ✅ BỎ điều kiện AND TrangThai = 'DADAT' để tránh bỏ sót
+                (ma_ban,)
+            )
+
+        conn.commit()
+        return jsonify({"success": True, "message": "Đã hủy đặt bàn"})
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@order_manage_bp.route("/reservations/<int:ma_dat_ban>/checkin", methods=["POST"])
+def checkin_reservation(ma_dat_ban):
+    """
+    Nhận bàn: chuyển bàn từ DADAT → DANGSUDUNG, tạo đơn hàng mới.
+    Body JSON: { "MaNV": int }
+    """
+    data  = request.json or {}
+    ma_nv = data.get("MaNV", 1)
+
+    conn   = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT DB.*, B.TenBan, B.TrangThai AS TrangThaiBan
+            FROM DATBAN DB
+            JOIN BAN B ON DB.MaBan = B.MaBan
+            WHERE DB.MaDatBan = %s
+            """,
+            (ma_dat_ban,)
+        )
+        dat_ban = cursor.fetchone()
+        if not dat_ban:
+            return jsonify({"success": False, "message": "Không tìm thấy đặt bàn"}), 404
+
+        ma_ban = dat_ban["MaBan"]
+
+        # Kiểm tra đơn đang hoạt động
+        cursor.execute(
+            """
+            SELECT MaDon FROM DONHANG
+            WHERE MaBan = %s AND TrangThai IN ('XACNHAN','DANGPHUCVU','CHOTHANHTOAN')
+            LIMIT 1
+            """,
+            (ma_ban,)
+        )
+        existing = cursor.fetchone()
+        if existing:
+            return jsonify({
+                "success": False,
+                "message": "Bàn này đã có đơn đang hoạt động",
+                "MaDon": existing["MaDon"]
+            }), 400
+
+        # Tạo đơn hàng
+        now = datetime.datetime.now()
+        cursor.execute(
+            """
+            INSERT INTO DONHANG (NgayTao, TrangThai, TongTien, GiamGia, ThanhTien, MaBan, MaNV)
+            VALUES (%s, 'XACNHAN', 0, 0, 0, %s, %s)
+            """,
+            (now, ma_ban, ma_nv)
+        )
+        ma_don = cursor.lastrowid
+
+        # Bàn → DANGSUDUNG
+        cursor.execute(
+            "UPDATE BAN SET TrangThai = 'DANGSUDUNG' WHERE MaBan = %s",
+            (ma_ban,)
+        )
+
+        # Xóa đặt bàn đã check-in
+        cursor.execute("DELETE FROM DATBAN WHERE MaDatBan = %s", (ma_dat_ban,))
+
+        # Ghi lịch sử
+        cursor.execute(
+            """
+            INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
+            VALUES (%s, %s, 'TAODON', %s, %s)
+            """,
+            (
+                ma_don, ma_nv,
+                f"Nhận bàn đặt – {dat_ban['TenKhach']} ({dat_ban['SDT']}) – {dat_ban['TenBan']}",
+                now
+            )
+        )
+
+        conn.commit()
+        return jsonify({
+            "success": True,
+            "message": f"Đã nhận bàn cho khách {dat_ban['TenKhach']}",
+            "MaDon": ma_don
         })
 
     except Exception as e:
