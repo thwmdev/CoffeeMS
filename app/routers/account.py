@@ -28,21 +28,27 @@ def get_accounts():
 @account_bp.route("/create", methods=["POST"])
 def create_account():
 
-    data = request.json
-    raw_password = data.get('MatKhau') or data.get('password')
-    
+    try:
+        data = request.json
 
-    hashed_pw = hash_password(str(raw_password))
-    if 'MatKhau' in data:
-        data['MatKhau'] = hashed_pw
-    else:
-        data['password'] = hashed_pw
-        
-    create_account_db(data)
+        raw_password = data.get('MatKhau') or data.get('password')
 
-    return jsonify({
-        "message": "Tạo tài khoản thành công"
-    })
+        hashed_pw = hash_password(str(raw_password))
+
+        if 'MatKhau' in data:
+            data['MatKhau'] = hashed_pw
+        else:
+            data['password'] = hashed_pw
+
+        create_account_db(data)
+
+        return jsonify({
+            "message": "Tạo tài khoản thành công"
+        })
+
+    except Exception as e:
+        print("CREATE ACCOUNT ERROR:", e)
+        raise
 
 # Cập nhật thông tin tài khoản
 @account_bp.route("/update/<int:matk>", methods=["PUT"])
