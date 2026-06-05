@@ -28,7 +28,10 @@ def login():
 
     # 1. Kiểm tra tài khoản tồn tại
     if not user:
-        return jsonify({"message": "Sai tài khoản"}), 401
+        return jsonify({"message": "Tài khoản không tồn tại."}), 401
+
+    if user["TrangThai"] != "HOATDONG":
+        return jsonify({"message": "Tài khoản của bạn đã bị khóa."}), 403
 
     try:
         db_password = user["MatKhau"]
@@ -39,15 +42,11 @@ def login():
         else:
             db_password = str(db_password)
 
-
-
         print(f"Mat khau vao: {password}")
         print(f"Mat khau tu db: {db_password}")
 
-
-
         if not verify_password(password, db_password):
-            return jsonify({"message": "Sai mật khẩu"}), 401
+            return jsonify({"message": "Mật khẩu không chính xác"}), 401
             
     except Exception as e:
         print(f"Error: {str(e)}")
