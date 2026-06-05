@@ -689,7 +689,8 @@ def get_tables():
             """
             SELECT
                 B.MaBan, B.TenBan, B.SoChoNgoi, B.TrangThai,
-                DH.MaDon, DH.TongTien, DH.NgayTao, DH.TrangThai AS TrangThaiDon
+                DH.MaDon, DH.TongTien, DH.GiamGia, DH.ThanhTien,
+                DH.NgayTao, DH.TrangThai AS TrangThaiDon
             FROM BAN B
             LEFT JOIN DONHANG DH
                 ON B.MaBan = DH.MaBan
@@ -697,12 +698,21 @@ def get_tables():
             ORDER BY B.MaBan
             """
         )
+        
         tables = cursor.fetchall()
         for t in tables:
             if t.get("NgayTao") and hasattr(t["NgayTao"], "strftime"):
                 t["NgayTao"] = t["NgayTao"].strftime("%Y-%m-%d %H:%M:%S")
+
             if t.get("TongTien") is not None:
                 t["TongTien"] = float(t["TongTien"])
+                
+            if t.get("GiamGia") is not None:
+                t["GiamGia"] = float(t["GiamGia"])
+                
+            if t.get("ThanhTien") is not None:
+                t["ThanhTien"] = float(t["ThanhTien"])
+
         return jsonify({"success": True, "data": tables})
 
     except Exception as e:
@@ -710,7 +720,6 @@ def get_tables():
     finally:
         cursor.close()
         conn.close()
-
 
 @order_manage_bp.route("/table/<int:ma_ban>/status", methods=["PUT"])
 def update_table_status(ma_ban):
