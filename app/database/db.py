@@ -11,7 +11,7 @@ def get_connection():
         port=28420,
         user="avnadmin",
         password="AVNS_O8rNgn6hXH4ziWooDIT",
-        database="defaultdb",
+        database="quanlyquancafe",
         
         ssl_ca=ssl_ca_path,
         ssl_disabled=False
