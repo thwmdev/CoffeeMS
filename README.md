@@ -106,40 +106,6 @@ app/
 
 ## 5. Cài đặt
 
-### Cài Python dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Tạo database
-
-```sql
-SOURCE database.sql;
-```
-
-### Chỉnh thông tin kết nối
-
-File:
-
-```python
-app/database/db.py
-```
-
-Ví dụ:
-
-```python
-host="localhost"
-user="root"
-password="root123"
-database="quanlyquancafe"
-```
-
-### Chạy ứng dụng
-
-```bash
-python run.py
-```
 
 
 ## 9. Thành viên thực hiện
