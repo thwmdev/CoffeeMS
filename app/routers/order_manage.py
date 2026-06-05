@@ -34,6 +34,8 @@ from flask import Blueprint, request, jsonify, render_template
 from app.database.db import get_connection
 import datetime
 
+from app.security.roles import role_required
+
 order_manage_bp = Blueprint("order_manage", __name__, url_prefix="/order")
 
 
@@ -263,6 +265,29 @@ def add_item(ma_don):
         don_gia = float(mon["GiaBan"])
         ten_mon = mon["TenMon"]
 
+        # ==============================================================
+        # THÊM MỚI: KIỂM TRA VÀ TRỪ KHO NGUYÊN LIỆU NGAY KHI ĐẶT MÓN
+        # ==============================================================
+        cursor.execute("SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s", (ma_mon,))
+        cong_thuc = cursor.fetchall()
+
+        # 1. Kiểm tra xem kho có đủ không
+        for nl in cong_thuc:
+            tong_tru = float(nl["SoLuongSuDung"]) * so_luong
+            cursor.execute("SELECT SoLuongTon FROM NGUYENLIEU WHERE MaNL = %s", (nl["MaNL"],))
+            kho = cursor.fetchone()
+            if not kho or float(kho["SoLuongTon"]) < tong_tru:
+                return jsonify({"success": False, "message": f"Kho không đủ nguyên liệu để làm món {ten_mon}"}), 400
+
+        # 2. Thực hiện trừ kho
+        for nl in cong_thuc:
+            tong_tru = float(nl["SoLuongSuDung"]) * so_luong
+            cursor.execute(
+                "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon - %s WHERE MaNL = %s",
+                (tong_tru, nl["MaNL"])
+            )
+        # ==============================================================
+
         cursor.execute(
             """
             SELECT MaCTDH, SoLuong FROM CHITIETDONHANG
@@ -308,7 +333,6 @@ def add_item(ma_don):
         cursor.close()
         conn.close()
 
-
 @order_manage_bp.route("/item/<int:ma_ctdh>/qty", methods=["PUT"])
 def update_item_qty(ma_ctdh):
     data     = request.json or {}
@@ -335,6 +359,33 @@ def update_item_qty(ma_ctdh):
             return jsonify({"success": False, "message": "Không tìm thấy món hoặc món đã được gửi bếp"}), 404
 
         ma_don = item["MaDon"]
+
+        # ==============================================================
+        # THÊM MỚI: ĐIỀU CHỈNH KHO KHI THAY ĐỔI SỐ LƯỢNG MÓN
+        # ==============================================================
+        chenh_lech = so_luong - item["SoLuong"]
+        
+        if chenh_lech != 0:
+            cursor.execute("SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s", (item["MaMon"],))
+            cong_thuc = cursor.fetchall()
+
+            # Nếu tăng số lượng, kiểm tra kho trước
+            if chenh_lech > 0:
+                for nl in cong_thuc:
+                    tong_tru_them = float(nl["SoLuongSuDung"]) * chenh_lech
+                    cursor.execute("SELECT SoLuongTon FROM NGUYENLIEU WHERE MaNL = %s", (nl["MaNL"],))
+                    kho = cursor.fetchone()
+                    if not kho or float(kho["SoLuongTon"]) < tong_tru_them:
+                        return jsonify({"success": False, "message": f"Kho không đủ nguyên liệu để thêm {item['TenMon']}"}), 400
+
+            # Cập nhật kho (chenh_lech > 0: trừ thêm kho, chenh_lech < 0: cộng lại kho do giảm số lượng)
+            for nl in cong_thuc:
+                thay_doi_kho = float(nl["SoLuongSuDung"]) * chenh_lech
+                cursor.execute(
+                    "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon - %s WHERE MaNL = %s",
+                    (thay_doi_kho, nl["MaNL"])
+                )
+        # ==============================================================
 
         if so_luong == 0:
             cursor.execute("DELETE FROM CHITIETDONHANG WHERE MaCTDH = %s", (ma_ctdh,))
@@ -417,7 +468,7 @@ def delete_item(ma_ctdh):
     try:
         cursor.execute(
             """
-            SELECT CTDH.MaDon, CTDH.TrangThaiMon, M.TenMon
+            SELECT CTDH.MaDon, CTDH.TrangThaiMon, CTDH.MaMon, CTDH.SoLuong, M.TenMon
             FROM CHITIETDONHANG CTDH
             JOIN MON M ON CTDH.MaMon = M.MaMon
             WHERE CTDH.MaCTDH = %s
@@ -435,6 +486,20 @@ def delete_item(ma_ctdh):
             }), 400
 
         ma_don = item["MaDon"]
+
+        # ==============================================================
+        # THÊM MỚI: HOÀN TRẢ KHO NGUYÊN LIỆU KHI XÓA MÓN
+        # ==============================================================
+        cursor.execute("SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s", (item["MaMon"],))
+        cong_thuc = cursor.fetchall()
+        for nl in cong_thuc:
+            tong_hoan = float(nl["SoLuongSuDung"]) * item["SoLuong"]
+            cursor.execute(
+                "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon + %s WHERE MaNL = %s",
+                (tong_hoan, nl["MaNL"])
+            )
+        # ==============================================================
+
         cursor.execute("DELETE FROM CHITIETDONHANG WHERE MaCTDH = %s", (ma_ctdh,))
         _recalc_total(cursor, ma_don)
 
@@ -455,7 +520,6 @@ def delete_item(ma_ctdh):
     finally:
         cursor.close()
         conn.close()
-
 
 @order_manage_bp.route("/<int:ma_don>/send", methods=["POST"])
 def send_to_kitchen(ma_don):
@@ -496,11 +560,11 @@ def send_to_kitchen(ma_don):
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
             VALUES (%s, %s, 'GUIBEP', %s, %s)
             """,
-            (ma_don, ma_nv, f"Gửi {cnt} món xuống bếp/bar", datetime.datetime.now())
+            (ma_don, ma_nv, f"Gửi {cnt} món xuống bếp/bar (Đã trừ kho)", datetime.datetime.now())
         )
 
         conn.commit()
-        return jsonify({"success": True, "message": f"Đã gửi {cnt} món xuống bếp/bar"})
+        return jsonify({"success": True, "message": f"Đã gửi {cnt} món xuống bếp/bar và trừ kho"})
 
     except Exception as e:
         conn.rollback()
@@ -511,6 +575,7 @@ def send_to_kitchen(ma_don):
 
 
 @order_manage_bp.route("/<int:ma_don>/cancel", methods=["POST"])
+@role_required("ADMIN", "THUNGAN") # VẤN ĐỀ 2: Bảo mật phân quyền hủy đơn
 def cancel_order(ma_don):
     data  = request.json or {}
     ly_do = (data.get("LyDo") or "Hủy theo yêu cầu").strip()
@@ -529,6 +594,39 @@ def cancel_order(ma_don):
                 "success": False,
                 "message": f"Không thể hủy đơn ở trạng thái {order['TrangThai']}"
             }), 400
+
+        # ==============================================================
+        # CẬP NHẬT: HOÀN KHO NGUYÊN LIỆU CHO TẤT CẢ CÁC MÓN CÓ TRONG ĐƠN
+        # ==============================================================
+        cursor.execute(
+            """
+            SELECT MaMon, SoLuong 
+            FROM CHITIETDONHANG 
+            WHERE MaDon = %s
+            """,
+            (ma_don,)
+        )
+        mon_can_hoan = cursor.fetchall()
+
+        for mon in mon_can_hoan:
+            cursor.execute(
+                "SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s",
+                (mon["MaMon"],)
+            )
+            cong_thuc = cursor.fetchall()
+
+            for nl in cong_thuc:
+                tong_hoan = float(nl["SoLuongSuDung"]) * int(mon["SoLuong"])
+                # Cộng trả lại số lượng tồn kho
+                cursor.execute(
+                    """
+                    UPDATE NGUYENLIEU 
+                    SET SoLuongTon = SoLuongTon + %s 
+                    WHERE MaNL = %s
+                    """,
+                    (tong_hoan, nl["MaNL"])
+                )
+        # ==============================================================
 
         cursor.execute(
             "UPDATE DONHANG SET TrangThai = 'HUY' WHERE MaDon = %s",
@@ -554,11 +652,11 @@ def cancel_order(ma_don):
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
             VALUES (%s, %s, 'HUYDON', %s, %s)
             """,
-            (ma_don, ma_nv, f"Hủy đơn: {ly_do}", datetime.datetime.now())
+            (ma_don, ma_nv, f"Hủy đơn: {ly_do} (Đã hoàn kho)", datetime.datetime.now())
         )
 
         conn.commit()
-        return jsonify({"success": True, "message": "Đơn hàng đã được hủy"})
+        return jsonify({"success": True, "message": "Đơn hàng đã được hủy và kho đã được hoàn trả"})
 
     except Exception as e:
         conn.rollback()
@@ -566,7 +664,6 @@ def cancel_order(ma_don):
     finally:
         cursor.close()
         conn.close()
-
 
 # ─────────────────────────────────────────────
 # CẬP NHẬT GIẢM GIÁ & GHI CHÚ ĐƠN            ← MỚI
