@@ -5,21 +5,16 @@ window.onload = () => {
 };
 
 async function loadAccounts() {
-
     const res = await fetch("/account/list");
     accounts = await res.json();
-
     renderAccounts();
 }
+
 function renderAccounts() {
-
     let html = "";
-
     accounts.forEach(acc => {
-
         html += `
         <tr>
-
             <td>${acc.MaNV}</td>
             <td>${acc.HoTen}</td>
             <td>${acc.SDT}</td>
@@ -27,27 +22,23 @@ function renderAccounts() {
             <td>${acc.TenDangNhap}</td>
             <td>${acc.VaiTro}</td>
             <td>${acc.TrangThai}</td>
-
             <td>
                 <div class="table-actions">
                     <button class="btn-table btn-edit" onclick="updateAccountInfo(${acc.MaTK})" title="Chỉnh sửa">
-                    <i class="bi bi-pencil-square"></i>
+                        <i class="bi bi-pencil-square"></i>
                     </button>
-        
                     <button class="btn-table btn-lock" onclick="toggleLock(${acc.MaTK})" title="Khóa/Mở khóa">
-                    <i class="bi bi-lock-fill"></i>
+                        <i class="bi bi-lock-fill"></i>
                     </button>
                 </div>
             </td>
-
         </tr>
         `;
     });
-
     document.getElementById("accountTable").innerHTML = html;
 }
-async function createAccount() {
 
+async function createAccount() {
     const body = {
         HoTen: document.getElementById("HoTen").value,
         SDT: document.getElementById("SDT").value,
@@ -57,26 +48,39 @@ async function createAccount() {
         VaiTro: document.getElementById("VaiTro").value
     };
 
-    const res = await fetch("/account/create", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-    });
+    try {
+        const res = await fetch("/account/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
 
-    const result = await res.json();
+        const result = await res.json();
 
-    alert(result.message);
-
-    loadAccounts();
+        if (res.ok) {
+            alert(result.message);
+            loadAccounts();
+            
+            document.getElementById("HoTen").value = "";
+            document.getElementById("SDT").value = "";
+            document.getElementById("Email").value = "";
+            document.getElementById("TenDangNhap").value = "";
+            document.getElementById("MatKhau").value = "";
+        } else {
+            alert("Lỗi: " + result.message);
+        }
+    } catch (error) {
+        console.error("Lỗi tạo tài khoản:", error);
+        alert("Không thể kết nối tới máy chủ!");
+    }
 }
-async function activateAccount(id) {
 
+async function activateAccount(id) {
     await fetch(`/account/activate/${id}`, {
         method: "PUT"
     });
-
     loadAccounts();
 }
 
@@ -101,34 +105,40 @@ async function saveAccountUpdate() {
     const body = {
         TenDangNhap: document.getElementById("updateTenDangNhap").value,
         SDT: document.getElementById("updateSDT").value,
-        Email: document.getElementById("updateEmail").value
+        Email: document.getElementById("updateEmail").value,
+        VaiTro: accounts.find(a => a.MaTK == id)?.VaiTro || ""
     };
 
-    const password =
-        document.getElementById("updateMatKhau").value.trim();
-
+    const password = document.getElementById("updateMatKhau").value.trim();
     if (password !== "") {
         body.MatKhau = password;
     }
 
-    const res = await fetch(`/account/update/${id}`, {
+    try {
+        const res = await fetch(`/account/update/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        });
 
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json"},
-        body: JSON.stringify(body)
-    });
+        const result = await res.json();
 
-    const result = await res.json();
-    alert(result.message);
-    bootstrap.Modal
-        .getInstance(document.getElementById("updateModal"))
-        .hide();
-    loadAccounts();
+        if (res.ok) {
+            alert(result.message);
+            bootstrap.Modal.getInstance(document.getElementById("updateModal")).hide();
+            loadAccounts();
+        } else {
+            alert("Lỗi: " + result.message);
+        }
+    } catch (error) {
+        console.error("Lỗi cập nhật tài khoản:", error);
+        alert("Không thể kết nối tới máy chủ!");
+    }
 }
 
 async function toggleLock(id) {
-
     const user = accounts.find(a => a.MaTK === id);
 
     let textConfirm = "";
@@ -147,15 +157,13 @@ async function toggleLock(id) {
         const result = await res.json();
         alert(result.message);
         loadAccounts();
-
     } catch (error) {
         console.error("Lỗi khi thay đổi trạng thái tài khoản:", error);
         alert("Có lỗi xảy ra, vui lòng thử lại!");
     }
 }
 
-
 function logout() {
- localStorage.removeItem("token");
+    localStorage.removeItem("token");
     window.location.href = "/";
 }
