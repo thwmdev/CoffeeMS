@@ -202,7 +202,14 @@ def toggle_account_status_db(matk):
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE TAIKHOAN SET TrangThai = IF(TrangThai = 'HOATDONG', 'KHOA', 'HOATDONG') WHERE MaTK = %s",
+        cursor.execute("""
+        UPDATE TAIKHOAN 
+        SET TrangThai = CASE 
+            WHEN UPPER(TRIM(TrangThai)) = 'HOATDONG' THEN 'KHOA'
+            ELSE 'HOATDONG'
+        END
+        WHERE MaTK = %s
+    """, (matk,))
         (matk,)
     )
 
