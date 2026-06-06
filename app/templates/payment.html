@@ -295,8 +295,21 @@ const normVoucher = (r) => ({ MaKM: toNumber(r.MaKM), MaCode: r.MaCode||'', Loai
 function fmtDate(v) { if (!v) return '—'; const d = new Date(v); return isNaN(d) ? String(v) : d.toLocaleString('vi-VN'); }
 function isActive(o) { return o && !['DATHANHTOAN','HUY'].includes(ns(o.TrangThai)); }
 function getTableObj() { return tables.find(t => t.MaBan === currentTable) || null; }
-function getSubtotal() { return (currentOrder?.ChiTiet||[]).reduce((s,i) => s + toNumber(i.SoLuong)*toNumber(i.DonGia), 0); }
-function getTotal() { return Math.max(0, getSubtotal() - toNumber(appliedDiscount)); }
+function getSubtotal() {
+    const fromItems = (currentOrder?.ChiTiet||[]).reduce((s,i) => s + toNumber(i.SoLuong)*toNumber(i.DonGia), 0);
+    // Fallback: nếu ChiTiet rỗng hoặc tổng = 0, dùng TongTien đã lưu trong DB
+    if (fromItems === 0 && currentOrder) return toNumber(currentOrder.TongTien);
+    return fromItems;
+}
+function getTotal() {
+    const sub = getSubtotal();
+    const disc = toNumber(appliedDiscount);
+    // Nếu đã có ThanhTien trong DB và chưa áp voucher mới, ưu tiên dùng ThanhTien
+    if (disc === 0 && currentOrder && toNumber(currentOrder.ThanhTien) > 0) {
+        return toNumber(currentOrder.ThanhTien);
+    }
+    return Math.max(0, sub - disc);
+}
 function getCash()  { return toNumber(document.getElementById('cashInput')?.value||0); }
 function getCMat()  { return toNumber(document.getElementById('comboMat')?.value||0); }
 function getCBank() { return toNumber(document.getElementById('comboBank')?.value||0); }
@@ -401,7 +414,8 @@ function updateSummary(sub, disc) {
     const sEl=document.getElementById('summarySubtotal'), dRow=document.getElementById('discountRow'), dEl=document.getElementById('summaryDiscount'), tEl=document.getElementById('totalAmount');
     if (sEl) sEl.textContent=fmt(sub);
     if (disc>0){if(dRow)dRow.style.display='flex';if(dEl)dEl.textContent='−'+fmt(disc);}else{if(dRow)dRow.style.display='none';}
-    if (tEl) tEl.textContent=fmt(Math.max(0,sub-disc));
+    // Dùng getTotal() để fallback ThanhTien từ DB khi chưa áp voucher mới
+    if (tEl) tEl.textContent=fmt(getTotal());
 }
 
 // ── PRINT ──
