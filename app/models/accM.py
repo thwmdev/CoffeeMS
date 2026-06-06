@@ -201,8 +201,7 @@ def toggle_account_status_db(matk):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        cursor.execute("""
+    cursor.execute("""
         UPDATE TAIKHOAN 
         SET TrangThai = CASE 
             WHEN UPPER(TRIM(TrangThai)) = 'HOATDONG' THEN 'KHOA'
@@ -210,8 +209,6 @@ def toggle_account_status_db(matk):
         END
         WHERE MaTK = %s
     """, (matk,))
-        (matk,)
-    )
 
     conn.commit()
     cursor.close()
