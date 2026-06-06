@@ -3,12 +3,12 @@ from app.database.db import get_connection
 from app.security.hash import hash_password
 
 
-def validate_nhanvien_fields(data, is_update=False, current_matk=None):
-    required_fields = ["TenDangNhap", "HoTen", "SDT", "Email", "VaiTro"]
-    
-    if not is_update:
-        required_fields.append("MatKhau")
-
+def validate_nhanvien_fields(cursor, data, is_update=False, current_matk=None):
+    if is_update:
+        required_fields = ["TenDangNhap", "SDT", "Email", "VaiTro"]
+    else:
+        required_fields = ["TenDangNhap", "HoTen", "SDT", "Email", "VaiTro", "MatKhau"]
+        
     for field in required_fields:
         val = data.get(field)
         if val is None or str(val).strip() == "":
@@ -24,60 +24,30 @@ def validate_nhanvien_fields(data, is_update=False, current_matk=None):
     if not re.match(r"^0[0-9]{9}$", sdt):
         raise ValueError("Số điện thoại bắt đầu bằng số 0 và đủ 10 chữ số.")
 
-    #KIỂM TRA TRÙNG 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
+    # TỐI ƯU: Gộp 3 câu lệnh SELECT thành 1 câu lệnh kiểm tra đồng thời 
     if is_update and current_matk:
-        cursor.execute("SELECT COUNT(*) as total FROM TAIKHOAN WHERE TenDangNhap = %s AND MaTK != %s", (tendangnhap, current_matk))
-        if cursor.fetchone()["total"] > 0:
-            cursor.close()
-            conn.close()
-            raise ValueError("Tên đăng nhập này đã có người sử dụng!")
-
-        
-        cursor.execute("SELECT COUNT(*) as total FROM NHANVIEN WHERE SDT = %s AND MaTK != %s", (sdt, current_matk))
-        if cursor.fetchone()["total"] > 0:
-            cursor.close()
-            conn.close()
-            raise ValueError("Số điện thoại này đã có người sử dụng!")
-
-        
-        
-        
-        cursor.execute("SELECT COUNT(*) as total FROM NHANVIEN WHERE Email = %s AND MaTK != %s", (email, current_matk))
-        if cursor.fetchone()["total"] > 0:
-            cursor.close()
-            conn.close()
-            raise ValueError("Email này đã có người sử dụng!")
+        cursor.execute("""
+            SELECT 
+                EXISTS(SELECT 1 FROM TAIKHOAN WHERE TenDangNhap = %s AND MaTK != %s) as trung_tk,
+                EXISTS(SELECT 1 FROM NHANVIEN WHERE SDT = %s AND MaTK != %s) as trung_sdt,
+                EXISTS(SELECT 1 FROM NHANVIEN WHERE Email = %s AND MaTK != %s) as trung_email
+        """, (tendangnhap, current_matk, sdt, current_matk, email, current_matk))
     else:
+        cursor.execute("""
+            SELECT 
+                EXISTS(SELECT 1 FROM TAIKHOAN WHERE TenDangNhap = %s) as trung_tk,
+                EXISTS(SELECT 1 FROM NHANVIEN WHERE SDT = %s) as trung_sdt,
+                EXISTS(SELECT 1 FROM NHANVIEN WHERE Email = %s) as trung_email
+        """, (tendangnhap, sdt, email))
         
-        
-        
-        cursor.execute("SELECT COUNT(*) as total FROM TAIKHOAN WHERE TenDangNhap = %s", (tendangnhap,))
-        if cursor.fetchone()["total"] > 0:
-            cursor.close()
-            conn.close()
-            raise ValueError("Tên đăng nhập này đã tồn tại!")
-
-        
-        
-        
-        cursor.execute("SELECT COUNT(*) as total FROM NHANVIEN WHERE SDT = %s", (sdt,))
-        if cursor.fetchone()["total"] > 0:
-            cursor.close()
-            conn.close()
-            raise ValueError("Số điện thoại này đã tồn tại!")
-
-
-        cursor.execute("SELECT COUNT(*) as total FROM NHANVIEN WHERE Email = %s", (email,))
-        if cursor.fetchone()["total"] > 0:
-            cursor.close()
-            conn.close()
-            raise ValueError("Email này đã tồn tại!")
-
-    cursor.close()
-    conn.close()
+    check_result = cursor.fetchone()
+    
+    if check_result["trung_tk"]:
+        raise ValueError("Tên đăng nhập này đã có người sử dụng!")
+    if check_result["trung_sdt"]:
+        raise ValueError("Số điện thoại này đã có người sử dụng!")
+    if check_result["trung_email"]:
+        raise ValueError("Email này đã có người sử dụng!")
 
 
 def get_all_accounts():
@@ -104,98 +74,85 @@ def get_all_accounts():
 
     cursor.close()
     conn.close()
-
     return result
 
 
 def create_account_db(data):
-    # Gọi hàm validate (bên trong đã tích hợp kiểm tra trùng)
-    validate_nhanvien_fields(data, is_update=False)
-
-    raw_password = data.get("MatKhau") or data.get("password")
-    hashed_pw = hash_password(str(raw_password))
-
     conn = get_connection()
-    cursor = conn.cursor()
+    # Sử dụng dictionary=True để đồng bộ cấu trúc với hàm validate
+    cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        INSERT INTO TAIKHOAN
-        (TenDangNhap, MatKhau, VaiTro, TrangThai, DoiMK)
-        VALUES (%s, %s, %s, 'HOATDONG', 0)
-    """, (
-        data["TenDangNhap"].strip(),
-        hashed_pw,
-        data["VaiTro"].upper()
-    ))
+    try:
+        # TỐI ƯU: Truyền cursor vào đây để dùng chung 1 kết nối mạng duy nhất
+        validate_nhanvien_fields(cursor, data, is_update=False)
 
-    matk = cursor.lastrowid
+        raw_password = data.get("MatKhau") or data.get("password")
+        hashed_pw = hash_password(str(raw_password))
 
-    cursor.execute("""
-        INSERT INTO NHANVIEN
-        (HoTen, SDT, Email, MaTK)
-        VALUES (%s, %s, %s, %s)
-    """, (
-        data["HoTen"].strip(),
-        data["SDT"].strip(),
-        data["Email"].strip(),
-        matk
-    ))
+        cursor.execute("""
+            INSERT INTO TAIKHOAN
+            (TenDangNhap, MatKhau, VaiTro, TrangThai, DoiMK)
+            VALUES (%s, %s, %s, 'HOATDONG', 0)
+        """, (
+            data["TenDangNhap"].strip(),
+            hashed_pw,
+            data["VaiTro"].upper()
+        ))
 
-    conn.commit()
+        matk = cursor.lastrowid
 
-    cursor.close()
-    conn.close()
+        cursor.execute("""
+            INSERT INTO NHANVIEN
+            (HoTen, SDT, Email, MaTK)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            data["HoTen"].strip(),
+            data["SDT"].strip(),
+            data["Email"].strip(),
+            matk
+        ))
 
-
-def reset_password_db(matk, password):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    hashed_password = hash_password(password)
-
-    cursor.execute("""
-        UPDATE TAIKHOAN
-        SET MatKhau = %s
-        WHERE MaTK = %s
-    """, (
-        hashed_password,
-        matk
-    ))
-
-    conn.commit()
-
-    cursor.close()
-    conn.close()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+        conn.close()
 
 
 def update_account_db(matk, data):
-    # Truyền thêm mã tài khoản hiện tại (matk) vào hàm validate để tránh việc tự trùng với chính mình khi cập nhật thông tin cũ
-    validate_nhanvien_fields(data, is_update=True, current_matk=matk)
-
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
     try:
-        if data.get("MatKhau"):
+        # TỐI ƯU: Truyền cursor vào đây để dùng chung kết nối hiện tại
+        validate_nhanvien_fields(cursor, data, is_update=True, current_matk=matk)
+
+        # Tiến hành cập nhật dữ liệu
+        if data.get("MatKhau") and str(data["MatKhau"]).strip() != "":
             hashed_pw = hash_password(data["MatKhau"])
             cursor.execute("""
                 UPDATE TAIKHOAN
                 SET TenDangNhap=%s,
-                    MatKhau=%s
+                    MatKhau=%s,
+                    VaiTro=%s
                 WHERE MaTK=%s
             """, (
                 data["TenDangNhap"].strip(),
                 hashed_pw,
+                data["VaiTro"].upper() if data.get("VaiTro") else "NHANVIEN",
                 matk
             ))
-
         else:
             cursor.execute("""
                 UPDATE TAIKHOAN
-                SET TenDangNhap=%s
+                SET TenDangNhap=%s,
+                    VaiTro=%s
                 WHERE MaTK=%s
             """, (
                 data["TenDangNhap"].strip(),
+                data["VaiTro"].upper() if data.get("VaiTro") else "NHANVIEN",
                 matk
             ))
 
@@ -217,6 +174,27 @@ def update_account_db(matk, data):
     finally:
         cursor.close()
         conn.close()
+
+
+def reset_password_db(matk, password):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    hashed_password = hash_password(password)
+
+    cursor.execute("""
+        UPDATE TAIKHOAN
+        SET MatKhau = %s
+        WHERE MaTK = %s
+    """, (
+        hashed_password,
+        matk
+    ))
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
 
 
 def toggle_account_status_db(matk):

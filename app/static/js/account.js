@@ -106,7 +106,7 @@ async function saveAccountUpdate() {
         TenDangNhap: document.getElementById("updateTenDangNhap").value,
         SDT: document.getElementById("updateSDT").value,
         Email: document.getElementById("updateEmail").value,
-        VaiTro: accounts.find(a => a.MaTK == id)?.VaiTro || ""
+        VaiTro: document.getElementById("updateVaiTro") ? document.getElementById("updateVaiTro").value : ""
     };
 
     const password = document.getElementById("updateMatKhau").value.trim();
