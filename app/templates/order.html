@@ -428,6 +428,29 @@
 <!-- TOAST NOTIFICATION -->
 <div id="toast" class="toast" style="display:none;"></div>
 
+<div id="modalCancelOrder" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-sm">
+        <div class="modal-header">
+            <h3>❌ Hủy đơn hàng</h3>
+            <button class="modal-close" onclick="closeModal('modalCancelOrder')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-desc" id="cancelOrderDesc">Bạn có chắc muốn hủy đơn này?</p>
+            <div class="cancel-warn-box">
+                ⚠️ Kho nguyên liệu sẽ được <strong>hoàn lại</strong> cho các món đã gửi bếp.<br>
+                Món chưa gửi bếp sẽ bị xóa khỏi đơn.
+            </div>
+            <label class="modal-label" style="margin-top:14px;">Lý do hủy (tuỳ chọn)</label>
+            <input type="text" id="cancelOrderReason" class="modal-input"
+                   placeholder="VD: khách hủy, sai món, nhầm bàn..." maxlength="200">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-modal-cancel" onclick="closeModal('modalCancelOrder')">Không, giữ lại</button>
+            <button class="btn-modal-confirm btn-cancel-confirm" onclick="confirmCancelOrder()">Xác nhận hủy đơn</button>
+        </div>
+    </div>
+</div>
+
 
 <script src="{{ url_for('static', filename='js/role.js') }}"></script>
 <script src="{{ url_for('static', filename='js/order.js') }}"></script>

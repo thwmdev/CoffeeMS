@@ -22,8 +22,17 @@
         .order-card { background: #fff; border-radius: 12px; border: 1px solid #dee2e6; overflow: hidden; }
         .order-card-header { background: #f8f9fa; border-bottom: 1px solid #dee2e6; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
         .order-table-name { font-size: 1.1rem; font-weight: 700; margin: 0; }
+
         .order-item { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; }
         .order-item:last-child { border-bottom: none; }
+
+     .order-items {
+    max-height: 350px; /* Bạn có thể tăng/giảm thông số này tùy ý */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+
         .item-name { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
         .item-note { font-size: 0.75rem; color: #6c757d; }
         .item-price { font-weight: 700; font-size: 0.9rem; white-space: nowrap; }

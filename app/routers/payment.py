@@ -49,7 +49,6 @@ def index():
 # ─────────────────────────────────────────────
 # [1] DANH SÁCH BÀN
 # GET /payment/tables
-# Trả về tất cả bàn kèm trạng thái.
 # ─────────────────────────────────────────────
 
 @payment_bp.route("/tables", methods=["GET"])
@@ -95,7 +94,6 @@ def get_tables():
 # ─────────────────────────────────────────────
 # [2] CHI TIẾT ĐƠN HÀNG THEO BÀN
 # GET /payment/tables/<ma_ban>/order
-# Trả về đơn hàng đang hoạt động của bàn + chi tiết từng món.
 # ─────────────────────────────────────────────
 
 @payment_bp.route("/tables/<int:ma_ban>/order", methods=["GET"])
@@ -103,7 +101,6 @@ def get_order_by_table(ma_ban):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Lấy đơn hàng đang hoạt động
             cur.execute("""
                 SELECT d.*, nv.HoTen AS TenNhanVien
                 FROM DONHANG d
@@ -121,7 +118,6 @@ def get_order_by_table(ma_ban):
             cols = [d[0] for d in cur.description]
             order = dict(zip(cols, row))
 
-            # Lấy chi tiết các món trong đơn
             cur.execute("""
                 SELECT
                     ct.MaCTDH,
@@ -154,7 +150,6 @@ def get_order_by_table(ma_ban):
 # ─────────────────────────────────────────────
 # [3] DANH SÁCH VOUCHER ĐANG HOẠT ĐỘNG
 # GET /payment/vouchers
-# Trả về các mã khuyến mãi còn hiệu lực.
 # ─────────────────────────────────────────────
 
 @payment_bp.route("/vouchers", methods=["GET"])
@@ -186,8 +181,6 @@ def get_vouchers():
 # ─────────────────────────────────────────────
 # [4] KIỂM TRA & ÁP DỤNG VOUCHER
 # POST /payment/vouchers/apply
-# Body: { "ma_code": "GIAM10", "tong_tien": 90000 }
-# Trả về số tiền giảm thực tế.
 # ─────────────────────────────────────────────
 
 @payment_bp.route("/vouchers/apply", methods=["POST"])
@@ -252,23 +245,12 @@ def apply_voucher():
 # ─────────────────────────────────────────────
 # [5] THANH TOÁN ĐƠN HÀNG
 # POST /payment/orders/<ma_don>/checkout
-# Body:
-# {
-#   "phuong_thuc": "TIENMAT" | "CHUYENKHOAN" | "KETHOP",
-#   "tien_mat": 100000,
-#   "tien_chuyen_khoan": 0,
-#   "ma_km": 1,          (optional)
-#   "giam_gia": 5000,    (optional)
-#   "vat": 0             (optional)
-# }
-# Logic:
-#   1. Kiểm tra đơn hàng hợp lệ & chưa thanh toán
-#   2. Tính tiền thối
-#   3. Ghi bảng THANHTOAN
-#   4. Cập nhật DONHANG: TrangThai=DATHANHTOAN, GiamGia, ThanhTien
-#   5. Cập nhật BAN: TrangThai=TRONG
-#   6. Ghi lịch sử đơn hàng (LICHSUDONHANG)
-#   (Trừ nguyên liệu KHÔNG nằm ở đây — được xử lý ở module order khi thêm món)
+#
+# LOGIC KHO NGUYÊN LIỆU:
+#   - Kho đã được trừ TẠM khi nhân viên "Gửi bếp/bar" (order_manage.py/send).
+#   - Khi hủy đơn, kho được HOÀN LẠI cho những món đã gửi bếp.
+#   - Khi THANH TOÁN: kho KHÔNG cần trừ thêm vì đã trừ từ lúc gửi bếp.
+#   - Kết quả cuối cùng: kho đã phản ánh đúng thực tế sau mỗi lần gửi bếp.
 # ─────────────────────────────────────────────
 
 @payment_bp.route("/orders/<int:ma_don>/checkout", methods=["POST"])
@@ -277,14 +259,13 @@ def checkout(ma_don):
     phuong_thuc       = data.get("phuong_thuc", "").upper()
     tien_mat          = float(data.get("tien_mat", 0))
     tien_chuyen_khoan = float(data.get("tien_chuyen_khoan", 0))
-    ma_km             = data.get("ma_km")           # int hoặc None
+    ma_km             = data.get("ma_km")
     giam_gia          = float(data.get("giam_gia", 0))
     vat               = float(data.get("vat", 0))
 
     if phuong_thuc not in ("TIENMAT", "CHUYENKHOAN", "KETHOP"):
         return error("Phương thức thanh toán không hợp lệ")
 
-    # Lấy MaNV từ session (nếu dự án có login); fallback = 1
     ma_nv = session.get("ma_nv", 1)
 
     conn = get_connection()
@@ -314,7 +295,6 @@ def checkout(ma_don):
             if thanh_tien < 0:
                 thanh_tien = 0.0
 
-            # Tính tiền thối (chỉ áp dụng cho tiền mặt)
             tien_nhan  = tien_mat + tien_chuyen_khoan
             tien_thoi  = round(tien_nhan - thanh_tien, 2)
             if tien_thoi < 0:
@@ -336,7 +316,7 @@ def checkout(ma_don):
                 vat
             ))
 
-            # 3. Cập nhật DONHANG
+            # 3. Cập nhật DONHANG → DATHANHTOAN
             cur.execute("""
                 UPDATE DONHANG
                 SET TrangThai = 'DATHANHTOAN',
@@ -352,8 +332,8 @@ def checkout(ma_don):
             """, (don_dict["MaBan"],))
 
             # 5. Ghi lịch sử
-            # (Trừ nguyên liệu được xử lý ở module order khi nhân viên thêm món,
-            #  không liên quan đến bước thanh toán.)
+            # Kho nguyên liệu đã được trừ từ lúc "Gửi bếp" (order_manage.py).
+            # Không cần trừ thêm tại đây.
             noi_dung = (
                 f"Thanh toán {phuong_thuc} | "
                 f"Tổng: {tong_tien:,.0f}đ | "
@@ -382,9 +362,8 @@ def checkout(ma_don):
 
 
 # ─────────────────────────────────────────────
-# [6] IN HÓA ĐƠN TẠM TÍNH (dữ liệu cho client render)
+# [6] IN HÓA ĐƠN TẠM TÍNH
 # GET /payment/orders/<ma_don>/receipt
-# Trả về toàn bộ thông tin cần thiết để frontend render hóa đơn.
 # ─────────────────────────────────────────────
 
 @payment_bp.route("/orders/<int:ma_don>/receipt", methods=["GET"])
@@ -392,7 +371,6 @@ def get_receipt(ma_don):
     conn = get_connection()
     try:
         with conn.cursor() as cur:
-            # Thông tin đơn hàng
             cur.execute("""
                 SELECT
                     d.MaDon, d.NgayTao, d.TrangThai,
@@ -412,7 +390,6 @@ def get_receipt(ma_don):
             cols   = [d[0] for d in cur.description]
             order  = dict(zip(cols, row))
 
-            # Chi tiết món
             cur.execute("""
                 SELECT
                     m.TenMon,

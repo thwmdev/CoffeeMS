@@ -312,29 +312,61 @@ async function sendToKitchen() {
 // ─────────────────────────────────────────────
 // HỦY ĐƠN
 // ─────────────────────────────────────────────
-async function cancelOrder() {
+function cancelOrder() {
     if (!currentOrder) return;
+ 
+    // Không cho hủy đơn đang chờ thanh toán
+    if (currentOrder.TrangThai === "CHOTHANHTOAN") {
+        showToast("Đơn đang chờ thanh toán, vui lòng thanh toán hoặc liên hệ quản lý", "error");
+        return;
+    }
+ 
+    // Điền thông tin vào modal
+    const tenBan = currentOrder.TenBan || `Đơn #${currentOrder.MaDon}`;
+    document.getElementById("cancelOrderDesc").textContent =
+        `Hủy đơn hàng tại ${tenBan}?`;
+    document.getElementById("cancelOrderReason").value = "";
+ 
+    document.getElementById("modalCancelOrder").style.display = "flex";
+    setTimeout(() => document.getElementById("cancelOrderReason").focus(), 100);
+}
+ 
+async function confirmCancelOrder() {
+    if (!currentOrder) return;
+ 
+    const lyDo = document.getElementById("cancelOrderReason").value.trim()
+                 || "Hủy theo yêu cầu";
+ 
+    // Disable nút để tránh double-click
+    const btn = document.querySelector(".btn-cancel-confirm");
+    if (btn) btn.disabled = true;
 
-    const lydo = prompt("Lý do hủy đơn (không bắt buộc):", "");
-    if (lydo === null) return;
-
+    const token = getCookie("token");
+ 
     try {
         const res = await fetch(`/order/${currentOrder.MaDon}/cancel`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ LyDo: lydo || "Hủy theo yêu cầu", MaNV: MA_NV })
+            headers: {
+                 "Content-Type": "application/json",
+                 "Authorization": `Bearer ${token}` 
+                },
+
+            body: JSON.stringify({ LyDo: lyDo, MaNV: MA_NV })
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.message);
-
-        showToast("🗑️ Đơn hàng đã hủy", "info");
+ 
+        showToast("❌ " + json.message, "info");
+        closeModal("modalCancelOrder");
         currentOrder  = null;
         selectedTable = null;
         showPanel("empty");
         await loadTables();
-
+ 
     } catch (e) {
         showToast(e.message, "error");
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 

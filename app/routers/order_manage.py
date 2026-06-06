@@ -12,8 +12,8 @@ Chức năng:
       DELETE /order/item/<ma_ctdh>      Xóa món khỏi đơn
       POST   /order/<ma_don>/send       Gửi order xuống bếp/bar
       POST   /order/<ma_don>/cancel     Hủy đơn hàng
-      PUT    /order/<ma_don>/discount   Cập nhật giảm giá & ghi chú đơn  ← MỚI
-      GET    /order/<ma_don>/history    Lịch sử thao tác đơn              ← MỚI
+      PUT    /order/<ma_don>/discount   Cập nhật giảm giá & ghi chú đơn
+      GET    /order/<ma_don>/history    Lịch sử thao tác đơn
 
   - Quản lý trạng thái bàn
       GET    /order/tables              Lấy danh sách bàn + trạng thái
@@ -21,13 +21,21 @@ Chức năng:
       POST   /order/table/transfer      Chuyển bàn
       POST   /order/table/merge         Gộp bàn
 
-  - Đặt bàn (Reservation)            ← MỚI
+  - Đặt bàn (Reservation)
       GET    /order/reservations        Danh sách đặt bàn
       POST   /order/reservations        Tạo đặt bàn mới
       GET    /order/reservations/<id>   Chi tiết đặt bàn
       PUT    /order/reservations/<id>   Cập nhật đặt bàn
       DELETE /order/reservations/<id>   Hủy đặt bàn
       POST   /order/reservations/<id>/checkin  Nhận bàn (DADAT → DANGSUDUNG)
+
+LOGIC KHO NGUYÊN LIỆU:
+  - Thêm món (add-item / update qty):  KHÔNG trừ kho, chỉ lưu vào CHITIETDONHANG
+  - Gửi bếp (send):                   TRỪ KHO TẠM – trừ kho cho các món CHOLAM → DANGLAM
+  - Hủy đơn (cancel):                 HOÀN KHO – chỉ hoàn những món đã gửi bếp (DANGLAM/DAPHUCVU)
+  - Thanh toán (checkout - payment.py): TRỪ KHO CHÍNH THỨC đã được xử lý ở payment.py
+    NOTE: Vì kho đã được trừ tạm lúc gửi bếp, payment.py KHÔNG cần trừ thêm.
+    Việc trừ tạm lúc gửi bếp chính là trừ chính thức – hủy đơn sẽ hoàn lại nếu cần.
 """
 
 from flask import Blueprint, request, jsonify, render_template
@@ -266,26 +274,8 @@ def add_item(ma_don):
         ten_mon = mon["TenMon"]
 
         # ==============================================================
-        # THÊM MỚI: KIỂM TRA VÀ TRỪ KHO NGUYÊN LIỆU NGAY KHI ĐẶT MÓN
-        # ==============================================================
-        cursor.execute("SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s", (ma_mon,))
-        cong_thuc = cursor.fetchall()
-
-        # 1. Kiểm tra xem kho có đủ không
-        for nl in cong_thuc:
-            tong_tru = float(nl["SoLuongSuDung"]) * so_luong
-            cursor.execute("SELECT SoLuongTon FROM NGUYENLIEU WHERE MaNL = %s", (nl["MaNL"],))
-            kho = cursor.fetchone()
-            if not kho or float(kho["SoLuongTon"]) < tong_tru:
-                return jsonify({"success": False, "message": f"Kho không đủ nguyên liệu để làm món {ten_mon}"}), 400
-
-        # 2. Thực hiện trừ kho
-        for nl in cong_thuc:
-            tong_tru = float(nl["SoLuongSuDung"]) * so_luong
-            cursor.execute(
-                "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon - %s WHERE MaNL = %s",
-                (tong_tru, nl["MaNL"])
-            )
+        # KHÔNG trừ kho khi thêm món – kho sẽ được trừ khi gửi bếp
+        # Chỉ kiểm tra sơ bộ xem công thức có tồn tại không (tùy chọn)
         # ==============================================================
 
         cursor.execute(
@@ -361,30 +351,8 @@ def update_item_qty(ma_ctdh):
         ma_don = item["MaDon"]
 
         # ==============================================================
-        # THÊM MỚI: ĐIỀU CHỈNH KHO KHI THAY ĐỔI SỐ LƯỢNG MÓN
-        # ==============================================================
-        chenh_lech = so_luong - item["SoLuong"]
-        
-        if chenh_lech != 0:
-            cursor.execute("SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s", (item["MaMon"],))
-            cong_thuc = cursor.fetchall()
-
-            # Nếu tăng số lượng, kiểm tra kho trước
-            if chenh_lech > 0:
-                for nl in cong_thuc:
-                    tong_tru_them = float(nl["SoLuongSuDung"]) * chenh_lech
-                    cursor.execute("SELECT SoLuongTon FROM NGUYENLIEU WHERE MaNL = %s", (nl["MaNL"],))
-                    kho = cursor.fetchone()
-                    if not kho or float(kho["SoLuongTon"]) < tong_tru_them:
-                        return jsonify({"success": False, "message": f"Kho không đủ nguyên liệu để thêm {item['TenMon']}"}), 400
-
-            # Cập nhật kho (chenh_lech > 0: trừ thêm kho, chenh_lech < 0: cộng lại kho do giảm số lượng)
-            for nl in cong_thuc:
-                thay_doi_kho = float(nl["SoLuongSuDung"]) * chenh_lech
-                cursor.execute(
-                    "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon - %s WHERE MaNL = %s",
-                    (thay_doi_kho, nl["MaNL"])
-                )
+        # KHÔNG điều chỉnh kho khi thay đổi số lượng món CHOLAM
+        # Kho chỉ bị trừ khi gửi bếp (send)
         # ==============================================================
 
         if so_luong == 0:
@@ -488,16 +456,8 @@ def delete_item(ma_ctdh):
         ma_don = item["MaDon"]
 
         # ==============================================================
-        # THÊM MỚI: HOÀN TRẢ KHO NGUYÊN LIỆU KHI XÓA MÓN
-        # ==============================================================
-        cursor.execute("SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s", (item["MaMon"],))
-        cong_thuc = cursor.fetchall()
-        for nl in cong_thuc:
-            tong_hoan = float(nl["SoLuongSuDung"]) * item["SoLuong"]
-            cursor.execute(
-                "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon + %s WHERE MaNL = %s",
-                (tong_hoan, nl["MaNL"])
-            )
+        # KHÔNG hoàn kho khi xóa món CHOLAM – vì kho chưa bị trừ
+        # Kho chỉ bị trừ khi gửi bếp (send), nên xóa CHOLAM không cần hoàn
         # ==============================================================
 
         cursor.execute("DELETE FROM CHITIETDONHANG WHERE MaCTDH = %s", (ma_ctdh,))
@@ -545,6 +505,46 @@ def send_to_kitchen(ma_don):
         if cnt == 0:
             return jsonify({"success": False, "message": "Không có món nào cần gửi bếp"}), 400
 
+        # ==============================================================
+        # TRỪ KHO TẠM: chỉ trừ các món CHOLAM (chưa gửi bếp lần nào)
+        # Đây là lần duy nhất kho bị trừ – hủy đơn sẽ hoàn lại
+        # ==============================================================
+        cursor.execute(
+            "SELECT MaMon, SoLuong FROM CHITIETDONHANG WHERE MaDon = %s AND TrangThaiMon = 'CHOLAM'",
+            (ma_don,)
+        )
+        mon_cho_gui = cursor.fetchall()
+
+        for mon in mon_cho_gui:
+            cursor.execute(
+                "SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s",
+                (mon["MaMon"],)
+            )
+            cong_thuc = cursor.fetchall()
+
+            # Kiểm tra kho đủ không trước khi trừ
+            for nl in cong_thuc:
+                tong_tru = float(nl["SoLuongSuDung"]) * int(mon["SoLuong"])
+                cursor.execute("SELECT TenNL, SoLuongTon FROM NGUYENLIEU WHERE MaNL = %s", (nl["MaNL"],))
+                kho = cursor.fetchone()
+                if not kho or float(kho["SoLuongTon"]) < tong_tru:
+                    ten_nl = kho["TenNL"] if kho else f"NL#{nl['MaNL']}"
+                    conn.rollback()
+                    return jsonify({
+                        "success": False,
+                        "message": f"Kho không đủ nguyên liệu '{ten_nl}' để làm món"
+                    }), 400
+
+            # Trừ kho
+            for nl in cong_thuc:
+                tong_tru = float(nl["SoLuongSuDung"]) * int(mon["SoLuong"])
+                cursor.execute(
+                    "UPDATE NGUYENLIEU SET SoLuongTon = SoLuongTon - %s WHERE MaNL = %s",
+                    (tong_tru, nl["MaNL"])
+                )
+        # ==============================================================
+
+        # Chuyển trạng thái món CHOLAM → DANGLAM
         cursor.execute(
             "UPDATE CHITIETDONHANG SET TrangThaiMon = 'DANGLAM' WHERE MaDon = %s AND TrangThaiMon = 'CHOLAM'",
             (ma_don,)
@@ -560,11 +560,11 @@ def send_to_kitchen(ma_don):
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
             VALUES (%s, %s, 'GUIBEP', %s, %s)
             """,
-            (ma_don, ma_nv, f"Gửi {cnt} món xuống bếp/bar (Đã trừ kho)", datetime.datetime.now())
+            (ma_don, ma_nv, f"Gửi {cnt} món xuống bếp/bar (Đã trừ kho tạm)", datetime.datetime.now())
         )
 
         conn.commit()
-        return jsonify({"success": True, "message": f"Đã gửi {cnt} món xuống bếp/bar và trừ kho"})
+        return jsonify({"success": True, "message": f"Đã gửi {cnt} món xuống bếp/bar"})
 
     except Exception as e:
         conn.rollback()
@@ -575,7 +575,8 @@ def send_to_kitchen(ma_don):
 
 
 @order_manage_bp.route("/<int:ma_don>/cancel", methods=["POST"])
-@role_required("ADMIN", "THUNGAN") # VẤN ĐỀ 2: Bảo mật phân quyền hủy đơn
+@role_required("ADMIN", "THUNGAN", "NHANVIEN")
+
 def cancel_order(ma_don):
     data  = request.json or {}
     ly_do = (data.get("LyDo") or "Hủy theo yêu cầu").strip()
@@ -596,19 +597,20 @@ def cancel_order(ma_don):
             }), 400
 
         # ==============================================================
-        # CẬP NHẬT: HOÀN KHO NGUYÊN LIỆU CHO TẤT CẢ CÁC MÓN CÓ TRONG ĐƠN
+        # HOÀN KHO: Chỉ hoàn những món đã được gửi bếp (DANGLAM/DAPHUCVU)
+        # Món CHOLAM chưa bị trừ kho, nên KHÔNG hoàn
         # ==============================================================
         cursor.execute(
             """
-            SELECT MaMon, SoLuong 
-            FROM CHITIETDONHANG 
-            WHERE MaDon = %s
+            SELECT MaMon, SoLuong, TrangThaiMon
+            FROM CHITIETDONHANG
+            WHERE MaDon = %s AND TrangThaiMon IN ('DANGLAM', 'DAPHUCVU')
             """,
             (ma_don,)
         )
-        mon_can_hoan = cursor.fetchall()
+        mon_da_gui = cursor.fetchall()
 
-        for mon in mon_can_hoan:
+        for mon in mon_da_gui:
             cursor.execute(
                 "SELECT MaNL, SoLuongSuDung FROM CONGTHUC WHERE MaMon = %s",
                 (mon["MaMon"],)
@@ -617,11 +619,10 @@ def cancel_order(ma_don):
 
             for nl in cong_thuc:
                 tong_hoan = float(nl["SoLuongSuDung"]) * int(mon["SoLuong"])
-                # Cộng trả lại số lượng tồn kho
                 cursor.execute(
                     """
-                    UPDATE NGUYENLIEU 
-                    SET SoLuongTon = SoLuongTon + %s 
+                    UPDATE NGUYENLIEU
+                    SET SoLuongTon = SoLuongTon + %s
                     WHERE MaNL = %s
                     """,
                     (tong_hoan, nl["MaNL"])
@@ -647,16 +648,22 @@ def cancel_order(ma_don):
                 (order["MaBan"],)
             )
 
+        so_mon_hoan = len(mon_da_gui)
         cursor.execute(
             """
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)
             VALUES (%s, %s, 'HUYDON', %s, %s)
             """,
-            (ma_don, ma_nv, f"Hủy đơn: {ly_do} (Đã hoàn kho)", datetime.datetime.now())
+            (ma_don, ma_nv,
+             f"Hủy đơn: {ly_do} (Hoàn kho {so_mon_hoan} món đã gửi bếp)",
+             datetime.datetime.now())
         )
 
         conn.commit()
-        return jsonify({"success": True, "message": "Đơn hàng đã được hủy và kho đã được hoàn trả"})
+        return jsonify({
+            "success": True,
+            "message": f"Đơn hàng đã được hủy. Đã hoàn kho {so_mon_hoan} món đã gửi bếp."
+        })
 
     except Exception as e:
         conn.rollback()
@@ -666,7 +673,7 @@ def cancel_order(ma_don):
         conn.close()
 
 # ─────────────────────────────────────────────
-# CẬP NHẬT GIẢM GIÁ & GHI CHÚ ĐƠN            ← MỚI
+# CẬP NHẬT GIẢM GIÁ & GHI CHÚ ĐƠN
 # ─────────────────────────────────────────────
 @order_manage_bp.route("/<int:ma_don>/discount", methods=["PUT"])
 def update_order_discount(ma_don):
@@ -700,9 +707,6 @@ def update_order_discount(ma_don):
 
         thanh_tien = tong_tien - giam_gia
 
-        # Cập nhật GiamGia và ThanhTien
-        # GhiChu: dùng cột GhiChu nếu bảng DONHANG có, nếu không thì bỏ qua
-        # (schema hiện tại DONHANG không có GhiChu, ta ghi vào LICHSUDONHANG)
         cursor.execute(
             "UPDATE DONHANG SET GiamGia = %s, ThanhTien = %s WHERE MaDon = %s",
             (giam_gia, thanh_tien, ma_don)
@@ -739,7 +743,7 @@ def update_order_discount(ma_don):
 
 
 # ─────────────────────────────────────────────
-# LỊCH SỬ THAO TÁC ĐƠN                        ← MỚI
+# LỊCH SỬ THAO TÁC ĐƠN
 # ─────────────────────────────────────────────
 @order_manage_bp.route("/<int:ma_don>/history", methods=["GET"])
 def get_order_history(ma_don):
@@ -1026,16 +1030,11 @@ def merge_tables():
 
 
 # ═══════════════════════════════════════════════════
-#  ĐẶT BÀN (RESERVATION)  ← MỚI
+#  ĐẶT BÀN (RESERVATION)
 # ═══════════════════════════════════════════════════
 
 @order_manage_bp.route("/reservations", methods=["GET"])
 def get_reservations():
-    """
-    Lấy danh sách đặt bàn.
-    Query params: ?date=YYYY-MM-DD (lọc theo ngày đến, mặc định hôm nay)
-                  ?all=1 (lấy tất cả)
-    """
     get_all  = request.args.get("all", "0") == "1"
     date_str = request.args.get("date", datetime.date.today().isoformat())
 
@@ -1077,16 +1076,6 @@ def get_reservations():
 
 @order_manage_bp.route("/reservations", methods=["POST"])
 def create_reservation():
-    """
-    Tạo đặt bàn mới.
-    Body JSON: {
-        "MaBan":    int,
-        "TenKhach": str,
-        "SDT":      str,
-        "GioDen":   "YYYY-MM-DD HH:MM",
-        "SoNguoi":  int
-    }
-    """
     data      = request.json or {}
     ma_ban    = data.get("MaBan")
     ten_khach = (data.get("TenKhach") or "").strip()
@@ -1094,7 +1083,6 @@ def create_reservation():
     gio_den   = data.get("GioDen")
     so_nguoi  = int(data.get("SoNguoi", 1))
 
-    # Validate
     if not ma_ban:
         return jsonify({"success": False, "message": "Thiếu mã bàn"}), 400
     if not ten_khach:
@@ -1117,20 +1105,17 @@ def create_reservation():
     conn   = get_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Kiểm tra bàn tồn tại
         cursor.execute("SELECT * FROM BAN WHERE MaBan = %s", (ma_ban,))
         ban = cursor.fetchone()
         if not ban:
             return jsonify({"success": False, "message": "Bàn không tồn tại"}), 404
 
-        # Kiểm tra sức chứa
         if so_nguoi > ban["SoChoNgoi"]:
             return jsonify({
                 "success": False,
                 "message": f"Bàn chỉ có {ban['SoChoNgoi']} chỗ, không đủ cho {so_nguoi} người"
             }), 400
 
-        # Kiểm tra trùng lịch (±2 giờ với đặt bàn hiện có)
         cursor.execute(
             """
             SELECT MaDatBan FROM DATBAN
@@ -1147,7 +1132,6 @@ def create_reservation():
                 "message": "Bàn này đã có đặt chỗ trong khung giờ tương tự (±2 giờ)"
             }), 400
 
-        # Tạo đặt bàn
         cursor.execute(
             """
             INSERT INTO DATBAN (MaBan, TenKhach, SDT, GioDen, SoNguoi)
@@ -1157,7 +1141,6 @@ def create_reservation():
         )
         ma_dat_ban = cursor.lastrowid
 
-        # Đánh dấu bàn → DADAT (nếu bàn đang TRONG)
         if ban["TrangThai"] == "TRONG":
             cursor.execute(
                 "UPDATE BAN SET TrangThai = 'DADAT' WHERE MaBan = %s",
@@ -1211,10 +1194,6 @@ def get_reservation(ma_dat_ban):
 
 @order_manage_bp.route("/reservations/<int:ma_dat_ban>", methods=["PUT"])
 def update_reservation(ma_dat_ban):
-    """
-    Cập nhật thông tin đặt bàn.
-    Body JSON: { "TenKhach", "SDT", "GioDen", "SoNguoi" } (tất cả đều optional)
-    """
     data      = request.json or {}
     ten_khach = (data.get("TenKhach") or "").strip() or None
     sdt       = (data.get("SDT") or "").strip() or None
@@ -1237,7 +1216,6 @@ def update_reservation(ma_dat_ban):
         if not dat_ban:
             return jsonify({"success": False, "message": "Không tìm thấy đặt bàn"}), 404
 
-        # Áp dụng thay đổi
         new_ten   = ten_khach or dat_ban["TenKhach"]
         new_sdt   = sdt or dat_ban["SDT"]
         new_sl    = int(so_nguoi) if so_nguoi is not None else dat_ban["SoNguoi"]
@@ -1289,7 +1267,6 @@ def cancel_reservation(ma_dat_ban):
 
         cursor.execute("DELETE FROM DATBAN WHERE MaDatBan = %s", (ma_dat_ban,))
 
-        # ✅ FIX: Dùng cursor mới để tránh conflict sau DELETE
         cursor2 = conn.cursor(dictionary=True)
 
         cursor2.execute(
@@ -1311,7 +1288,6 @@ def cancel_reservation(ma_dat_ban):
         if remaining == 0 and active_orders == 0:
             cursor.execute(
                 "UPDATE BAN SET TrangThai = 'TRONG' WHERE MaBan = %s",
-                #  ✅ BỎ điều kiện AND TrangThai = 'DADAT' để tránh bỏ sót
                 (ma_ban,)
             )
 
@@ -1328,10 +1304,6 @@ def cancel_reservation(ma_dat_ban):
 
 @order_manage_bp.route("/reservations/<int:ma_dat_ban>/checkin", methods=["POST"])
 def checkin_reservation(ma_dat_ban):
-    """
-    Nhận bàn: chuyển bàn từ DADAT → DANGSUDUNG, tạo đơn hàng mới.
-    Body JSON: { "MaNV": int }
-    """
     data  = request.json or {}
     ma_nv = data.get("MaNV", 1)
 
@@ -1353,7 +1325,6 @@ def checkin_reservation(ma_dat_ban):
 
         ma_ban = dat_ban["MaBan"]
 
-        # Kiểm tra đơn đang hoạt động
         cursor.execute(
             """
             SELECT MaDon FROM DONHANG
@@ -1370,7 +1341,6 @@ def checkin_reservation(ma_dat_ban):
                 "MaDon": existing["MaDon"]
             }), 400
 
-        # Tạo đơn hàng
         now = datetime.datetime.now()
         cursor.execute(
             """
@@ -1381,16 +1351,13 @@ def checkin_reservation(ma_dat_ban):
         )
         ma_don = cursor.lastrowid
 
-        # Bàn → DANGSUDUNG
         cursor.execute(
             "UPDATE BAN SET TrangThai = 'DANGSUDUNG' WHERE MaBan = %s",
             (ma_ban,)
         )
 
-        # Xóa đặt bàn đã check-in
         cursor.execute("DELETE FROM DATBAN WHERE MaDatBan = %s", (ma_dat_ban,))
 
-        # Ghi lịch sử
         cursor.execute(
             """
             INSERT INTO LICHSUDONHANG (MaDon, MaNV, HanhDong, NoiDung, ThoiGian)

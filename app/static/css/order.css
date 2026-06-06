@@ -872,6 +872,8 @@ body {
 .btn-reserve-confirm:hover        { background: #2563eb; }
 
 
+
+
 /* ── FORM 2-COL ─────────────────────────────────────── */
 .form-row-2 {
     display: grid;
@@ -1163,6 +1165,29 @@ body {
 .toast.toast-error   { background: var(--red); }
 .toast.toast-info    { background: var(--blue); }
 
+/* ── MODAL HỦY ĐƠN ─────────────────────────────────────── */
+.btn-cancel-confirm { 
+    background: #ef4444 !important; 
+}
+.btn-cancel-confirm:hover { 
+    background: #dc2626 !important; 
+}
+
+.cancel-warn-box {
+    background: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #92400e;
+    line-height: 1.6;
+}
+
+.modal-warn {
+    color: #b45309;
+    font-size: 13px;
+    margin: 8px 0 0;
+}
 
 /* ── SCROLLBAR ──────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
@@ -1182,3 +1207,4 @@ body {
     .rl-table { font-size: 13px; }
     .rl-table th, .rl-table td { padding: 8px; }
 }
+

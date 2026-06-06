@@ -2,11 +2,7 @@ from functools import wraps
 from flask import request, jsonify
 import jwt
 
-SECRET_KEY = "secret-key-demo"
-
-
-def decode_token(token):
-    return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+from app.security.jwthandler import decode_token
 
 
 def role_required(*allowed_roles):
